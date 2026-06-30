@@ -1,0 +1,92 @@
+{
+  "actorKeyValueStoreSchemaVersion": 1,
+  "title": "Stock Market News Collector — Key-Value Store",
+  "description": "Run metadata and summaries written by the Actor to the default key-value store.",
+  "collections": {
+    "runSummary": {
+      "title": "Run summary",
+      "description": "JSON summary of the collection run, including per-feed stats, failures, and run status.",
+      "key": "OUTPUT",
+      "contentTypes": ["application/json"],
+      "jsonSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "required": ["count", "fetchedAt", "runStatus", "statusMessage"],
+        "properties": {
+          "count": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Number of news articles written to the dataset."
+          },
+          "fetchedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO 8601 timestamp when the run started collecting feeds."
+          },
+          "runStatus": {
+            "type": "string",
+            "enum": ["ok", "partial", "no_items", "all_feeds_failed", "error"],
+            "description": "Overall run outcome. The Actor always exits successfully; inspect this field for details."
+          },
+          "statusMessage": {
+            "type": "string",
+            "description": "Human-readable summary of the run outcome."
+          },
+          "feedsRequested": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "feedsSucceeded": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "feedsFailed": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "freeTierLimited": {
+            "type": "boolean",
+            "description": "True when output was capped for a free-plan user."
+          },
+          "warnings": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Non-fatal issues encountered during the run."
+          },
+          "feedStats": {
+            "type": "array",
+            "description": "Per-feed raw/kept counts or error details.",
+            "items": {
+              "type": "object",
+              "required": ["feed", "status"],
+              "properties": {
+                "feed": { "type": "string" },
+                "name": { "type": ["string", "null"] },
+                "status": { "type": "string", "enum": ["ok", "failed"] },
+                "rawItems": { "type": "integer", "minimum": 0 },
+                "keptItems": { "type": "integer", "minimum": 0 },
+                "error": { "type": "string" }
+              }
+            }
+          },
+          "failures": {
+            "type": "array",
+            "description": "Feeds that could not be fetched after retries.",
+            "items": {
+              "type": "object",
+              "properties": {
+                "feed": { "type": ["string", "null"] },
+                "name": { "type": ["string", "null"] },
+                "error": { "type": "string" }
+              }
+            }
+          },
+          "items": {
+            "type": "array",
+            "description": "Same articles as the default dataset (embedded copy for convenience)."
+          }
+        }
+      }
+    }
+  }
+}

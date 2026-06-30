@@ -1,0 +1,113 @@
+{
+  "actorSpecification": 1,
+  "title": "Stock market news articles",
+  "description": "Normalized financial news articles from RSS/Atom feeds. One dataset item per article.",
+  "views": {
+    "overview": {
+      "title": "News articles",
+      "description": "Latest stock market headlines sorted by publication date.",
+      "transformation": {
+        "fields": [
+          "headline",
+          "source",
+          "publishedDate",
+          "tickers",
+          "summary",
+          "articleLink"
+        ]
+      },
+      "display": {
+        "component": "table",
+        "properties": {
+          "headline": { "label": "Headline", "format": "text" },
+          "source": { "label": "Source", "format": "text" },
+          "publishedDate": { "label": "Published", "format": "date" },
+          "tickers": { "label": "Tickers", "format": "array" },
+          "summary": { "label": "Summary", "format": "text" },
+          "articleLink": { "label": "Link", "format": "link" }
+        }
+      }
+    }
+  },
+  "fields": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "required": ["headline", "articleLink", "source", "fetchedAt"],
+    "properties": {
+      "headline": {
+        "type": "string",
+        "title": "Headline",
+        "description": "Article title with HTML tags and entities removed.",
+        "example": "US Stocks Rise as Indexes on Track for Best Quarter Since 2020"
+      },
+      "source": {
+        "type": "string",
+        "title": "Source",
+        "description": "Publisher or feed name (e.g. Bloomberg Markets, Yahoo Finance).",
+        "example": "Bloomberg Markets"
+      },
+      "author": {
+        "type": ["string", "null"],
+        "title": "Author",
+        "description": "Article author from RSS when available; null otherwise.",
+        "example": null
+      },
+      "publishedDate": {
+        "type": ["string", "null"],
+        "title": "Published date",
+        "description": "Publication timestamp in ISO 8601 UTC. Null if the feed omits a date.",
+        "example": "2026-06-30T17:00:00.000Z"
+      },
+      "articleLink": {
+        "type": "string",
+        "title": "Article URL",
+        "description": "Canonical article link with UTM and tracking query params removed.",
+        "example": "https://www.bloomberg.com/news/articles/2026-06-30/us-stocks-rise"
+      },
+      "summary": {
+        "type": "string",
+        "title": "Summary",
+        "description": "RSS description or snippet, truncated to 320 characters. Often empty for Yahoo Finance.",
+        "example": "US equities climbed as investors weighed economic data."
+      },
+      "categories": {
+        "type": "array",
+        "title": "Categories",
+        "description": "RSS category tags for the article.",
+        "items": { "type": "string" },
+        "example": ["Markets"]
+      },
+      "imageUrl": {
+        "type": ["string", "null"],
+        "title": "Image URL",
+        "description": "Thumbnail or media image URL from the RSS feed when present.",
+        "example": "https://example.com/image.jpg"
+      },
+      "tickers": {
+        "type": "array",
+        "title": "Detected tickers",
+        "description": "Stock symbols auto-detected in headline and summary (e.g. $AAPL, NYSE: MSFT).",
+        "items": { "type": "string" },
+        "example": ["AAPL"]
+      },
+      "dedupeKey": {
+        "type": "string",
+        "title": "Deduplication key",
+        "description": "Stable key for cross-feed and cross-run deduplication. Usually equals articleLink.",
+        "example": "https://www.bloomberg.com/news/articles/2026-06-30/us-stocks-rise"
+      },
+      "sourceFeed": {
+        "type": "string",
+        "title": "Source feed URL",
+        "description": "RSS/Atom feed URL this article was collected from.",
+        "example": "https://feeds.bloomberg.com/markets/news.rss"
+      },
+      "fetchedAt": {
+        "type": "string",
+        "title": "Fetched at",
+        "description": "ISO 8601 UTC timestamp when this Actor run collected the article.",
+        "example": "2026-06-30T17:14:35.211Z"
+      }
+    }
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "actorOutputSchemaVersion": 1,
+  "title": "Stock Market News Collector output",
+  "description": "Primary output is the default dataset (one JSON object per news article). Secondary output is the OUTPUT key in the key-value store with runStatus, feedStats, and failures. The Actor always exits successfully; agents must read runStatus to detect empty or partial runs.",
+  "properties": {
+    "articles": {
+      "type": "string",
+      "title": "News articles",
+      "description": "Array of normalized stock market news articles. Each item has headline, source, publishedDate, articleLink, summary, tickers, and dedupeKey. Use this as the primary output for RAG, alerts, and dashboards.",
+      "template": "{{links.apiDefaultDatasetUrl}}/items?view=overview"
+    },
+    "runSummary": {
+      "type": "string",
+      "title": "Run summary",
+      "description": "JSON object at key OUTPUT. Contains runStatus (ok|partial|no_items|all_feeds_failed|error), count, feedStats, failures, and warnings. Always check runStatus when count is 0.",
+      "template": "{{links.apiDefaultKeyValueStoreUrl}}/records/OUTPUT"
+    }
+  }
+}

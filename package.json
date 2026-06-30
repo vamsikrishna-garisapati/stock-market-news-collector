@@ -1,0 +1,21 @@
+{
+  "name": "stock-market-news-collector",
+  "version": "0.1.0",
+  "description": "Apify Actor that collects the latest US stock market news from RSS/Atom feeds and stores JSON results.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vamsikrishna-garisapati/stock-market-news-collector.git"
+  },
+  "homepage": "https://github.com/vamsikrishna-garisapati/stock-market-news-collector",
+  "type": "module",
+  "main": "src/main.js",
+  "scripts": {
+    "start": "node src/main.js"
+  },
+  "dependencies": {
+    "apify": "^3.5.0",
+    "rss-parser": "^3.13.0",
+    "striptags": "^3.2.0",
+    "html-entities": "^2.6.0"
+  }
+}
