@@ -10,4 +10,4 @@ RUN pnpm install --prod --frozen-lockfile \
 
 COPY --chown=myuser:myuser . ./
 
-CMD pnpm start
+CMD ["pnpm", "start"]
