@@ -30,7 +30,7 @@
     }
   },
   "fields": {
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$schema": "http://json-schema.org/draft-07/schema#",
     "type": "object",
     "required": ["headline", "articleLink", "source", "fetchedAt"],
     "properties": {
@@ -108,6 +108,7 @@
         "description": "ISO 8601 UTC timestamp when this Actor run collected the article.",
         "example": "2026-06-30T17:14:35.211Z"
       }
-    }
+    },
+    "additionalProperties": true
   }
 }

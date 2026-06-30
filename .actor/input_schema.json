@@ -33,7 +33,7 @@
       "type": "array",
       "description": "Only include articles mentioning these tickers (e.g. AAPL, TSLA, NVDA). Works together with includeKeywords unless includeKeywords is []. Leave empty to disable ticker filter.",
       "editor": "stringList",
-      "prefill": ["AAPL", "TSLA"],
+      "default": [],
       "example": ["AAPL", "NVDA"],
       "sectionCaption": "Filters",
       "sectionDescription": "Narrow results by ticker, company name, or keywords."
