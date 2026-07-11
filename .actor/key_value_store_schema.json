@@ -80,10 +80,6 @@
                 "error": { "type": "string" }
               }
             }
-          },
-          "items": {
-            "type": "array",
-            "description": "Same articles as the default dataset (embedded copy for convenience)."
           }
         }
       }

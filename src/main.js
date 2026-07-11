@@ -1,7 +1,23 @@
 import { Actor, log } from 'apify';
 import Parser from 'rss-parser';
-import striptags from 'striptags';
-import { decode } from 'html-entities';
+import {
+    DEFAULT_INCLUDE_KEYWORDS,
+    FREE_TIER_MAX_ITEMS,
+    MAX_HEADLINE_LENGTH,
+    articleSearchText,
+    buildStatusMessage,
+    canonicalizeUrl,
+    cleanText,
+    containsAnyKeyword,
+    containsExcludedKeyword,
+    detectTickers,
+    matchesCompanyFilter,
+    matchesTickerFilter,
+    resolveRunStatus,
+    sanitizeHttpUrl,
+    truncate,
+    validateCustomFeeds,
+} from './utils.js';
 
 const DEFAULT_FEEDS = [
     { name: 'MarketWatch Top Stories', url: 'https://feeds.content.dowjones.io/public/rss/mw_topstories' },
@@ -24,22 +40,9 @@ const FEED_PRESETS = {
     ],
 };
 
-const DEFAULT_INCLUDE_KEYWORDS = [
-    'stock', 'stocks', 'market', 'markets', 'equity', 'equities', 'shares',
-    's&p', 'dow', 'nasdaq', 'earnings', 'ipo', 'nifty', 'sensex',
-];
-
-const TICKER_FALSE_POSITIVES = new Set([
-    'A', 'AI', 'AM', 'AN', 'API', 'ARE', 'AS', 'AT', 'BE', 'BIG', 'CAN', 'CEO', 'CO',
-    'DAY', 'DO', 'ETF', 'EU', 'FDA', 'FOR', 'GDP', 'GO', 'HAS', 'HE', 'HER', 'HIS',
-    'IF', 'IN', 'IPO', 'IS', 'IT', 'ITS', 'LOW', 'NEW', 'NO', 'NOT', 'OF', 'ON',
-    'OR', 'OUR', 'OUT', 'PM', 'SO', 'THE', 'TO', 'UK', 'UP', 'US', 'USD', 'VS', 'WE',
-]);
-
 const USER_AGENT = 'Mozilla/5.0 (compatible; ApifyStockMarketNewsActor/1.0; +https://apify.com/)';
 const DEFAULT_REQUEST_TIMEOUT_MS = 15_000;
 const DEFAULT_FEED_RETRIES = 1;
-const FREE_TIER_MAX_ITEMS = 25;
 
 function createParser(timeoutMs) {
     return new Parser({
@@ -59,45 +62,28 @@ function createParser(timeoutMs) {
     });
 }
 
-function cleanText(value = '') {
-    return decode(striptags(String(value)))
-        .replace(/\s+/g, ' ')
-        .trim();
-}
-
-function truncate(value = '', maxLength = 320) {
-    const text = cleanText(value);
-    if (text.length <= maxLength) return text;
-    return `${text.slice(0, maxLength - 1).trim()}…`;
-}
-
 function parseDate(value) {
     if (!value) return null;
     const date = new Date(value);
     return Number.isNaN(date.getTime()) ? null : date;
 }
 
-function normalizeFeed(feed) {
-    if (typeof feed === 'string') {
-        return { name: null, url: feed };
-    }
-
-    if (feed && typeof feed === 'object' && typeof feed.url === 'string') {
-        return {
-            name: typeof feed.name === 'string' ? feed.name : null,
-            url: feed.url,
-        };
-    }
-
-    return null;
-}
-
-function resolveFeeds(input) {
+function resolveFeeds(input, warnings) {
     const preset = input.feedPreset || 'us_markets';
 
     if (preset === 'custom') {
-        const custom = (input.feeds || []).map(normalizeFeed).filter(Boolean);
-        return custom.length ? custom : DEFAULT_FEEDS;
+        const { valid, skipped } = validateCustomFeeds(input.feeds || []);
+        for (const entry of skipped) {
+            const label = entry.feed ? String(entry.feed) : 'custom feeds';
+            warnings.push(`Skipped ${label}: ${entry.reason}`);
+            log.warning(`Skipped custom feed: ${label} — ${entry.reason}`);
+        }
+        return valid.length ? valid : DEFAULT_FEEDS;
+    }
+
+    if (!FEED_PRESETS[preset]) {
+        warnings.push(`Unknown feedPreset "${preset}" — using us_markets defaults.`);
+        log.warning(`Unknown feedPreset "${preset}" — falling back to us_markets defaults.`);
     }
 
     return FEED_PRESETS[preset] || DEFAULT_FEEDS;
@@ -111,23 +97,6 @@ function hostnameFromUrl(url) {
     }
 }
 
-function canonicalizeUrl(url) {
-    if (!url) return null;
-
-    try {
-        const parsed = new URL(url);
-        for (const key of [...parsed.searchParams.keys()]) {
-            if (/^utm_/i.test(key) || ['fbclid', 'gclid', 'mc_cid', 'mc_eid'].includes(key.toLowerCase())) {
-                parsed.searchParams.delete(key);
-            }
-        }
-        parsed.hash = '';
-        return parsed.toString();
-    } catch {
-        return url;
-    }
-}
-
 function textFromSourceField(source) {
     if (!source) return null;
     if (typeof source === 'string') return cleanText(source);
@@ -135,62 +104,6 @@ function textFromSourceField(source) {
         return cleanText(source._ || source['#'] || source.title || source.name || '');
     }
     return null;
-}
-
-function escapeRegex(value) {
-    return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
-
-function matchesKeyword(text, keyword) {
-    const kw = String(keyword).toLowerCase().trim();
-    if (!kw) return false;
-
-    const lower = text.toLowerCase();
-
-    if (kw.includes(' ') || /[&]/.test(kw)) {
-        return lower.includes(kw);
-    }
-
-    if (kw.length <= 4) {
-        return new RegExp(`\\b${escapeRegex(kw)}\\b`, 'i').test(text);
-    }
-
-    return lower.includes(kw);
-}
-
-function containsAnyKeyword(text, keywords) {
-    if (!keywords?.length) return true;
-    return keywords.some((keyword) => matchesKeyword(text, keyword));
-}
-
-function containsExcludedKeyword(text, keywords) {
-    if (!keywords?.length) return false;
-    return keywords.some((keyword) => matchesKeyword(text, keyword));
-}
-
-function articleSearchText(headline, summary) {
-    return `${headline} ${summary}`.trim();
-}
-
-function detectTickers(text) {
-    const found = new Set();
-    const patterns = [
-        /\$([A-Z]{1,5})\b/g,
-        /\(([A-Z]{1,5})\)/g,
-        /(?:NASDAQ|NYSE|AMEX|OTC):\s*([A-Z]{1,5})\b/g,
-        /\b([A-Z]{2,5})\s+(?:stock|shares|equity|ticker)\b/g,
-    ];
-
-    for (const pattern of patterns) {
-        for (const match of text.matchAll(pattern)) {
-            const symbol = (match[1] || match[2] || match[3] || '').toUpperCase();
-            if (symbol && symbol.length >= 2 && !TICKER_FALSE_POSITIVES.has(symbol)) {
-                found.add(symbol);
-            }
-        }
-    }
-
-    return [...found];
 }
 
 function extractCategories(item) {
@@ -219,31 +132,10 @@ function extractImageUrl(item) {
     if (!media) return null;
 
     if (typeof media === 'object') {
-        return media.url || media.$?.url || null;
+        return sanitizeHttpUrl(media.url || media.$?.url || null);
     }
 
     return null;
-}
-
-function matchesTickerFilter(searchable, tickers, matchMode) {
-    if (!tickers?.length) return true;
-
-    const upperText = searchable.toUpperCase();
-    const detected = detectTickers(searchable);
-    const normalizedTickers = tickers.map((t) => String(t).replace(/^\$/, '').toUpperCase());
-
-    const matches = normalizedTickers.map((ticker) => {
-        if (detected.includes(ticker)) return true;
-        return new RegExp(`\\b\\$?${escapeRegex(ticker)}\\b`, 'i').test(upperText);
-    });
-
-    return matchMode === 'all' ? matches.every(Boolean) : matches.some(Boolean);
-}
-
-function matchesCompanyFilter(searchable, companies) {
-    if (!companies?.length) return true;
-    const lower = searchable.toLowerCase();
-    return companies.some((company) => lower.includes(String(company).toLowerCase()));
 }
 
 function isFreeTierUser() {
@@ -271,7 +163,7 @@ async function parseFeedWithRetries(parser, feed, retries) {
 }
 
 function normalizeItem(item, feed, parsedFeed, fetchedAt) {
-    const headline = cleanText(item.title);
+    const headline = truncate(item.title, MAX_HEADLINE_LENGTH);
     const articleLink = canonicalizeUrl(item.link || item.guid);
     const published = parseDate(item.isoDate || item.pubDate || item.published || item.updated);
 
@@ -308,34 +200,8 @@ function normalizeItem(item, feed, parsedFeed, fetchedAt) {
     };
 }
 
-function resolveRunStatus({ feedsSucceeded, feedsRequested, itemCount, failures }) {
-    if (feedsSucceeded === 0) return 'all_feeds_failed';
-    if (itemCount === 0) return 'no_items';
-    if (failures.length > 0) return 'partial';
-    return 'ok';
-}
-
-function buildStatusMessage({ output, feedsRequested, failures, freeTier, runStatus, warnings }) {
-    const parts = [`Saved ${output.length} news item(s).`];
-
-    if (runStatus === 'all_feeds_failed') {
-        parts.push(`All ${feedsRequested} feed(s) failed — see OUTPUT.failures.`);
-    } else if (runStatus === 'no_items') {
-        parts.push('No articles matched your filters.');
-    } else if (failures.length) {
-        parts.push(`${failures.length}/${feedsRequested} feed failure(s).`);
-    }
-
-    if (freeTier) parts.push(`Free tier: max ${FREE_TIER_MAX_ITEMS} items.`);
-    if (warnings.length && runStatus !== 'no_items' && runStatus !== 'all_feeds_failed') {
-        parts.push(warnings[0]);
-    }
-
-    return parts.join(' ');
-}
-
 async function finishRun(summary) {
-    await Actor.setValue('OUTPUT', JSON.stringify(summary, null, 2), { contentType: 'application/json' });
+    await Actor.setValue('OUTPUT', summary);
     await Actor.setStatusMessage(summary.statusMessage);
     log.info('Run summary', {
         runStatus: summary.runStatus,
@@ -383,15 +249,17 @@ function processFeedItems(parsedFeed, feed, fetchedAt, filters, maxItemsPerFeed)
 await Actor.main(async () => {
     const fetchedAt = new Date().toISOString();
     const warnings = [];
+    let feedsRequested = 0;
 
     try {
         const input = await Actor.getInput() || {};
 
-        let feeds = resolveFeeds(input);
+        let feeds = resolveFeeds(input, warnings);
         if (!feeds.length) {
             warnings.push('No valid feeds in input — using built-in defaults.');
             feeds = DEFAULT_FEEDS;
         }
+        feedsRequested = feeds.length;
 
         const freeTier = isFreeTierUser();
 
@@ -402,9 +270,13 @@ await Actor.main(async () => {
         }
 
         const hoursBack = Math.max(Number(input.hoursBack ?? 24), 0);
-        const includeKeywords = Array.isArray(input.includeKeywords)
-            ? input.includeKeywords
-            : DEFAULT_INCLUDE_KEYWORDS;
+        let includeKeywords = DEFAULT_INCLUDE_KEYWORDS;
+        if (Array.isArray(input.includeKeywords)) {
+            includeKeywords = input.includeKeywords;
+        } else if (input.includeKeywords != null) {
+            warnings.push('includeKeywords must be an array — using default finance keywords.');
+            log.warning('includeKeywords must be an array — using default finance keywords.');
+        }
         const excludeKeywords = Array.isArray(input.excludeKeywords) ? input.excludeKeywords : [];
         const tickers = Array.isArray(input.tickers) ? input.tickers : [];
         const companies = Array.isArray(input.companies) ? input.companies : [];
@@ -523,7 +395,6 @@ await Actor.main(async () => {
             freeTierLimited: freeTier,
             warnings,
             feedStats,
-            items: output,
             failures,
         });
     } catch (error) {
@@ -535,13 +406,12 @@ await Actor.main(async () => {
             fetchedAt,
             runStatus: 'error',
             statusMessage,
-            feedsRequested: 0,
+            feedsRequested,
             feedsSucceeded: 0,
             feedsFailed: 0,
             freeTierLimited: false,
             warnings: [error.message],
             feedStats: [],
-            items: [],
             failures: [{ feed: null, name: null, error: error.message }],
         });
     }

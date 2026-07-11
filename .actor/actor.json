@@ -5,12 +5,22 @@
   "description": "Collect latest US stock market news from Bloomberg, MarketWatch, and Yahoo Finance RSS feeds. Filter by stock ticker (AAPL, TSLA), company name, or keyword. Returns structured JSON for trading alerts, fintech APIs, sentiment analysis, and AI/RAG pipelines. No login required.",
   "version": "0.3",
   "buildTag": "latest",
+  "categories": ["NEWS", "FINANCE"],
   "meta": {
-    "templateId": "js-start"
+    "templateId": "js-start",
+    "generatedBy": "Cursor with Auto"
   },
   "input": "./input_schema.json",
   "output": "./output_schema.json",
   "readme": "../README.md",
+  "prefillInput": {
+    "feedPreset": "us_markets",
+    "maxItems": 50,
+    "hoursBack": 24,
+    "deduplicate": true,
+    "requestTimeoutMs": 15000,
+    "feedRetries": 1
+  },
   "storages": {
     "dataset": "./dataset_schema.json",
     "keyValueStore": "./key_value_store_schema.json"

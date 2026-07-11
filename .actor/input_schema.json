@@ -24,7 +24,7 @@
     "feeds": {
       "title": "Custom feeds",
       "type": "array",
-      "description": "RSS or Atom feed URLs. Used only when Feed preset is \"custom\". Each item can be a URL string or an object with name and url.",
+      "description": "RSS or Atom feed URLs (http or https only, max 20). Used only when Feed preset is \"custom\". Each item can be a URL string or an object with name and url.",
       "editor": "json",
       "default": []
     },

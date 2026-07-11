@@ -190,3 +190,9 @@ The Actor reads public RSS feeds. Verify publisher terms if you redistribute com
 - Default keyword filter may exclude relevant articles that lack finance terms in the headline or summary
 
 Use only feeds and content you are allowed to collect under applicable terms of service.
+
+## Privacy and GDPR
+
+This Actor collects publicly available RSS headlines and metadata from third-party publishers. It does not scrape personal profiles, login-gated content, or user account data. You are responsible for ensuring your use of collected data complies with applicable privacy laws (including GDPR) and publisher terms of service.
+
+Report bugs or request features via the **Issues** tab on this Actor's Apify Store page or the linked GitHub repository.

@@ -48,12 +48,15 @@ One item per news article. Key fields:
 
 ### Secondary: key-value store (`OUTPUT` / run summary)
 
+Run metadata only — read the **default dataset** for article records.
+
 | Field | Values | Meaning |
 | --- | --- | --- |
 | `runStatus` | `ok`, `partial`, `no_items`, `all_feeds_failed`, `error` | Always exit 0; check this for outcome |
 | `count` | integer | Articles saved to dataset |
 | `feedStats` | array | Per-feed raw/kept counts or errors |
 | `failures` | array | Feeds that failed after retries |
+| `freeTierLimited` | boolean | True when output was capped at 25 items (free Apify plan) |
 
 ## Recommended inputs
 
@@ -109,6 +112,7 @@ One item per news article. Key fields:
 2. **Assuming run failed on empty dataset** — Actor always succeeds; check `OUTPUT.runStatus === "no_items"`.
 3. **Expecting full article text** — only RSS headline/summary is available.
 4. **Using `global_markets` for non-US** — preset still uses US-English sources; use `custom` feeds for other regions.
+5. **Free tier item cap** — free Apify plan users receive at most **25 articles per run** regardless of `maxItems`. Paid plans allow up to 500.
 
 ## Apify API
 
