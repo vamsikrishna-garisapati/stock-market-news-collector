@@ -1,11 +1,14 @@
 import { Actor, log } from 'apify';
-import Parser from 'rss-parser';
+import { classifyEvents, detectCompanies, scoreSentiment } from './enrich.js';
+import { DEFAULT_PRESET, FEED_PRESETS, createParser } from './feeds.js';
+import { addFullText } from './fulltext.js';
+import { deriveStateKey, loadSeenArticles, saveSeenArticles } from './state.js';
 import {
-    DEFAULT_INCLUDE_KEYWORDS,
-    FREE_TIER_MAX_ITEMS,
     MAX_HEADLINE_LENGTH,
     articleSearchText,
+    buildGoogleNewsFeeds,
     buildStatusMessage,
+    buildTickerFeeds,
     canonicalizeUrl,
     cleanText,
     containsAnyKeyword,
@@ -13,54 +16,17 @@ import {
     detectTickers,
     matchesCompanyFilter,
     matchesTickerFilter,
+    resolveIncludeKeywords,
     resolveRunStatus,
     sanitizeHttpUrl,
+    stripPublisherSuffix,
     truncate,
     validateCustomFeeds,
 } from './utils.js';
 
-const DEFAULT_FEEDS = [
-    { name: 'MarketWatch Top Stories', url: 'https://feeds.content.dowjones.io/public/rss/mw_topstories' },
-    { name: 'MarketWatch Market Pulse', url: 'https://feeds.content.dowjones.io/public/rss/mw_marketpulse' },
-    { name: 'Yahoo Finance', url: 'https://finance.yahoo.com/news/rssindex' },
-    { name: 'Bloomberg Markets', url: 'https://feeds.bloomberg.com/markets/news.rss' },
-];
-
-const FEED_PRESETS = {
-    us_markets: DEFAULT_FEEDS,
-    global_markets: [
-        { name: 'Bloomberg Markets', url: 'https://feeds.bloomberg.com/markets/news.rss' },
-        { name: 'Yahoo Finance', url: 'https://finance.yahoo.com/news/rssindex' },
-        { name: 'MarketWatch Top Stories', url: 'https://feeds.content.dowjones.io/public/rss/mw_topstories' },
-    ],
-    earnings: [
-        { name: 'MarketWatch Market Pulse', url: 'https://feeds.content.dowjones.io/public/rss/mw_marketpulse' },
-        { name: 'Yahoo Finance', url: 'https://finance.yahoo.com/news/rssindex' },
-        { name: 'Bloomberg Markets', url: 'https://feeds.bloomberg.com/markets/news.rss' },
-    ],
-};
-
-const USER_AGENT = 'Mozilla/5.0 (compatible; ApifyStockMarketNewsActor/1.0; +https://apify.com/)';
 const DEFAULT_REQUEST_TIMEOUT_MS = 15_000;
 const DEFAULT_FEED_RETRIES = 1;
-
-function createParser(timeoutMs) {
-    return new Parser({
-        timeout: timeoutMs,
-        headers: {
-            'User-Agent': USER_AGENT,
-            'Accept': 'application/rss+xml, application/atom+xml, application/xml, text/xml, */*',
-        },
-        customFields: {
-            item: [
-                ['content:encoded', 'contentEncoded'],
-                ['dc:creator', 'dcCreator'],
-                ['media:content', 'mediaContent'],
-                'source',
-            ],
-        },
-    });
-}
+const DATASET_ITEM_EVENT = 'apify-default-dataset-item';
 
 function parseDate(value) {
     if (!value) return null;
@@ -68,25 +34,34 @@ function parseDate(value) {
     return Number.isNaN(date.getTime()) ? null : date;
 }
 
-function resolveFeeds(input, warnings) {
-    const preset = input.feedPreset || 'us_markets';
+function warn(warnings, message) {
+    warnings.push(message);
+    log.warning(message);
+}
 
-    if (preset === 'custom') {
+function resolvePreset(input, warnings) {
+    const presetName = input.feedPreset || DEFAULT_PRESET;
+
+    if (presetName === 'custom') {
         const { valid, skipped } = validateCustomFeeds(input.feeds || []);
         for (const entry of skipped) {
-            const label = entry.feed ? String(entry.feed) : 'custom feeds';
-            warnings.push(`Skipped ${label}: ${entry.reason}`);
-            log.warning(`Skipped custom feed: ${label} — ${entry.reason}`);
+            warn(warnings, `Skipped ${entry.feed ? String(entry.feed) : 'custom feeds'}: ${entry.reason}`);
         }
-        return valid.length ? valid : DEFAULT_FEEDS;
+        return { feeds: valid, useDefaultKeywords: true };
     }
 
-    if (!FEED_PRESETS[preset]) {
-        warnings.push(`Unknown feedPreset "${preset}" — using us_markets defaults.`);
-        log.warning(`Unknown feedPreset "${preset}" — falling back to us_markets defaults.`);
+    if (!FEED_PRESETS[presetName]) {
+        warn(warnings, `Unknown feedPreset "${presetName}" — using ${DEFAULT_PRESET} defaults.`);
+        return FEED_PRESETS[DEFAULT_PRESET];
     }
 
-    return FEED_PRESETS[preset] || DEFAULT_FEEDS;
+    return FEED_PRESETS[presetName];
+}
+
+function feedLabel(feed) {
+    if (feed.ticker) return `${feed.name} (${feed.ticker})`;
+    if (feed.query) return `${feed.name}: ${feed.query}`;
+    return feed.name;
 }
 
 function hostnameFromUrl(url) {
@@ -138,9 +113,12 @@ function extractImageUrl(item) {
     return null;
 }
 
-function isFreeTierUser() {
-    const { userIsPaying } = Actor.getEnv();
-    return userIsPaying === 0;
+function maxChargeableItems() {
+    try {
+        return Actor.getChargingManager().calculateMaxEventChargeCountWithinLimit(DATASET_ITEM_EVENT);
+    } catch {
+        return Infinity;
+    }
 }
 
 async function parseFeedWithRetries(parser, feed, retries) {
@@ -162,12 +140,16 @@ async function parseFeedWithRetries(parser, feed, retries) {
     throw lastError;
 }
 
-function normalizeItem(item, feed, parsedFeed, fetchedAt) {
-    const headline = truncate(item.title, MAX_HEADLINE_LENGTH);
+function normalizeItem(item, feed, parsedFeed, fetchedAt, enrich) {
+    const publisher = textFromSourceField(item.source);
+    const headline = feed.query
+        ? stripPublisherSuffix(truncate(item.title, MAX_HEADLINE_LENGTH), publisher)
+        : truncate(item.title, MAX_HEADLINE_LENGTH);
     const articleLink = canonicalizeUrl(item.link || item.guid);
     const published = parseDate(item.isoDate || item.pubDate || item.published || item.updated);
 
-    const rawSummary = item.contentSnippet
+    // Google News descriptions only repeat the headline and publisher.
+    const rawSummary = feed.query ? '' : item.contentSnippet
         || item.summary
         || item.description
         || item.content
@@ -176,15 +158,22 @@ function normalizeItem(item, feed, parsedFeed, fetchedAt) {
 
     const summary = truncate(rawSummary);
     const searchable = articleSearchText(headline, summary);
+    const tickers = detectTickers(searchable);
+    if (feed.ticker && !tickers.includes(feed.ticker)) tickers.unshift(feed.ticker);
 
-    const source = textFromSourceField(item.source)
+    const companyDetails = detectCompanies(searchable, tickers);
+    for (const company of companyDetails) {
+        if (!tickers.includes(company.ticker)) tickers.push(company.ticker);
+    }
+
+    const source = publisher
         || feed.name
         || cleanText(parsedFeed.title || '')
         || hostnameFromUrl(articleLink)
         || hostnameFromUrl(feed.url)
         || 'Unknown';
 
-    return {
+    const article = {
         headline,
         source,
         author: extractAuthor(item),
@@ -193,11 +182,72 @@ function normalizeItem(item, feed, parsedFeed, fetchedAt) {
         summary,
         categories: extractCategories(item),
         imageUrl: extractImageUrl(item),
-        tickers: detectTickers(searchable),
+        tickers,
         dedupeKey: articleLink || `${source}:${headline}`.toLowerCase(),
         sourceFeed: feed.url,
+        searchQuery: feed.query || null,
         fetchedAt,
     };
+
+    if (enrich) {
+        const sentiment = scoreSentiment(headline, summary);
+        article.companyDetails = companyDetails;
+        article.eventTypes = classifyEvents(searchable);
+        article.sentimentScore = sentiment.score;
+        article.sentimentLabel = sentiment.label;
+    }
+
+    return article;
+}
+
+function processFeedItems(parsedFeed, feed, fetchedAt, filters, options) {
+    const {
+        includeKeywords,
+        excludeKeywords,
+        tickers,
+        companies,
+        tickerMatchMode,
+        cutoffMs,
+    } = filters;
+
+    const items = [];
+
+    for (const item of parsedFeed.items || []) {
+        const normalized = normalizeItem(item, feed, parsedFeed, fetchedAt, options.enrich);
+        if (!normalized.headline || !normalized.articleLink) continue;
+
+        const searchable = articleSearchText(normalized.headline, normalized.summary);
+
+        if (!containsAnyKeyword(searchable, includeKeywords)) continue;
+        if (containsExcludedKeyword(searchable, excludeKeywords)) continue;
+
+        // Search results already match the user's query, so entity filters apply only to other feeds.
+        if (!feed.query) {
+            if (!matchesTickerFilter(searchable, tickers, tickerMatchMode, normalized.tickers)) continue;
+            if (!matchesCompanyFilter(searchable, companies)) continue;
+        }
+
+        if (cutoffMs && normalized.publishedDate) {
+            const publishedMs = Date.parse(normalized.publishedDate);
+            if (!Number.isNaN(publishedMs) && publishedMs < cutoffMs) continue;
+        }
+
+        items.push(normalized);
+        if (options.maxItemsPerFeed && items.length >= options.maxItemsPerFeed) break;
+    }
+
+    return items;
+}
+
+function mergeDuplicate(existing, item) {
+    for (const ticker of item.tickers) {
+        if (!existing.tickers.includes(ticker)) existing.tickers.push(ticker);
+    }
+    if (existing.companyDetails && item.companyDetails) {
+        for (const company of item.companyDetails) {
+            if (!existing.companyDetails.some((c) => c.ticker === company.ticker)) existing.companyDetails.push(company);
+        }
+    }
 }
 
 async function finishRun(summary) {
@@ -211,77 +261,29 @@ async function finishRun(summary) {
     });
 }
 
-function processFeedItems(parsedFeed, feed, fetchedAt, filters, maxItemsPerFeed) {
-    const {
-        includeKeywords,
-        excludeKeywords,
-        tickers,
-        companies,
-        tickerMatchMode,
-        cutoffMs,
-    } = filters;
-
-    const items = [];
-
-    for (const item of parsedFeed.items || []) {
-        const normalized = normalizeItem(item, feed, parsedFeed, fetchedAt);
-        if (!normalized.headline || !normalized.articleLink) continue;
-
-        const searchable = articleSearchText(normalized.headline, normalized.summary);
-
-        if (!containsAnyKeyword(searchable, includeKeywords)) continue;
-        if (containsExcludedKeyword(searchable, excludeKeywords)) continue;
-        if (!matchesTickerFilter(searchable, tickers, tickerMatchMode)) continue;
-        if (!matchesCompanyFilter(searchable, companies)) continue;
-
-        if (cutoffMs && normalized.publishedDate) {
-            const publishedMs = Date.parse(normalized.publishedDate);
-            if (!Number.isNaN(publishedMs) && publishedMs < cutoffMs) continue;
-        }
-
-        items.push(normalized);
-        if (maxItemsPerFeed && items.length >= maxItemsPerFeed) break;
-    }
-
-    return items;
-}
-
 await Actor.main(async () => {
     const fetchedAt = new Date().toISOString();
     const warnings = [];
     let feedsRequested = 0;
+    let failOnAllFeedsFailed = false;
+    let failMessage = null;
 
     try {
         const input = await Actor.getInput() || {};
+        failOnAllFeedsFailed = input.failOnAllFeedsFailed === true;
 
-        let feeds = resolveFeeds(input, warnings);
-        if (!feeds.length) {
-            warnings.push('No valid feeds in input — using built-in defaults.');
-            feeds = DEFAULT_FEEDS;
-        }
-        feedsRequested = feeds.length;
-
-        const freeTier = isFreeTierUser();
-
-        let maxItems = Math.min(Math.max(Number(input.maxItems ?? 50), 1), 500);
-        if (freeTier) {
-            maxItems = Math.min(maxItems, FREE_TIER_MAX_ITEMS);
-            log.info(`Free-tier user: output capped at ${FREE_TIER_MAX_ITEMS} items. Upgrade for up to 500.`);
-        }
-
+        const maxItems = Math.min(Math.max(Number(input.maxItems ?? 50), 1), 500);
         const hoursBack = Math.max(Number(input.hoursBack ?? 24), 0);
-        let includeKeywords = DEFAULT_INCLUDE_KEYWORDS;
-        if (Array.isArray(input.includeKeywords)) {
-            includeKeywords = input.includeKeywords;
-        } else if (input.includeKeywords != null) {
-            warnings.push('includeKeywords must be an array — using default finance keywords.');
-            log.warning('includeKeywords must be an array — using default finance keywords.');
-        }
         const excludeKeywords = Array.isArray(input.excludeKeywords) ? input.excludeKeywords : [];
         const tickers = Array.isArray(input.tickers) ? input.tickers : [];
         const companies = Array.isArray(input.companies) ? input.companies : [];
+        const searchQueries = Array.isArray(input.searchQueries) ? input.searchQueries : [];
         const tickerMatchMode = input.tickerMatchMode === 'all' ? 'all' : 'any';
         const deduplicate = input.deduplicate !== false;
+        const enrich = input.enrichArticles !== false;
+        const onlyNewArticles = input.onlyNewArticles === true;
+        const includeFullText = input.includeFullText === true;
+        const fullTextMaxChars = Math.min(Math.max(Number(input.fullTextMaxChars ?? 10_000), 500), 50_000);
         const maxItemsPerFeed = input.maxItemsPerFeed
             ? Math.min(Math.max(Number(input.maxItemsPerFeed), 1), 500)
             : null;
@@ -289,24 +291,51 @@ await Actor.main(async () => {
         const feedRetries = Math.min(Math.max(Number(input.feedRetries ?? DEFAULT_FEED_RETRIES), 0), 3);
         const cutoffMs = hoursBack > 0 ? Date.now() - hoursBack * 60 * 60 * 1000 : 0;
 
-        const parser = createParser(requestTimeoutMs);
-        const filters = {
-            includeKeywords,
-            excludeKeywords,
+        const preset = resolvePreset(input, warnings);
+        let feeds = [...preset.feeds];
+
+        if (tickers.length && input.useTickerFeeds !== false) {
+            const { feeds: tickerFeeds, skipped } = buildTickerFeeds(tickers);
+            for (const entry of skipped) warn(warnings, `Ticker feed skipped for ${entry.ticker}: ${entry.reason}`);
+            feeds.push(...tickerFeeds);
+        }
+
+        if (searchQueries.length) {
+            const { feeds: searchFeeds, skipped } = buildGoogleNewsFeeds(searchQueries, {
+                language: input.searchLanguage,
+                country: input.searchCountry,
+                hoursBack,
+            });
+            for (const entry of skipped) warn(warnings, `Search query skipped "${entry.query}": ${entry.reason}`);
+            feeds.push(...searchFeeds);
+        }
+
+        if (!feeds.length) {
+            warn(warnings, `No feeds, tickers, or search queries to fetch — using ${DEFAULT_PRESET} defaults.`);
+            feeds = [...FEED_PRESETS[DEFAULT_PRESET].feeds];
+        }
+        feedsRequested = feeds.length;
+
+        const { keywords: includeKeywords, warning: keywordWarning } = resolveIncludeKeywords({
+            includeKeywords: input.includeKeywords,
             tickers,
             companies,
-            tickerMatchMode,
-            cutoffMs,
-        };
+            searchQueries,
+            useDefaultKeywords: preset.useDefaultKeywords,
+        });
+        if (keywordWarning) warn(warnings, keywordWarning);
+
+        const parser = createParser(requestTimeoutMs);
+        const filters = { includeKeywords, excludeKeywords, tickers, companies, tickerMatchMode, cutoffMs };
 
         await Actor.setStatusMessage(`Fetching ${feeds.length} feed(s) in parallel...`);
 
         const feedResults = await Promise.allSettled(
             feeds.map(async (feed) => {
                 const parsedFeed = await parseFeedWithRetries(parser, feed, feedRetries);
-                const items = processFeedItems(parsedFeed, feed, fetchedAt, filters, maxItemsPerFeed);
-                log.info(`Fetched ${parsedFeed.items?.length || 0} item(s), kept ${items.length} from ${feed.name || feed.url}`);
-                return { feed, itemCount: parsedFeed.items?.length || 0, items };
+                const items = processFeedItems(parsedFeed, feed, fetchedAt, filters, { enrich, maxItemsPerFeed });
+                log.info(`Fetched ${parsedFeed.items?.length || 0} item(s), kept ${items.length} from ${feedLabel(feed) || feed.url}`);
+                return { itemCount: parsedFeed.items?.length || 0, items };
             }),
         );
 
@@ -322,47 +351,87 @@ await Actor.main(async () => {
                 results.push(...outcome.value.items);
                 feedStats.push({
                     feed: feed.url,
-                    name: feed.name,
+                    name: feedLabel(feed),
                     status: 'ok',
                     rawItems: outcome.value.itemCount,
                     keptItems: outcome.value.items.length,
                 });
             } else {
                 const errorMessage = outcome.reason?.message || String(outcome.reason);
-                failures.push({ feed: feed.url, name: feed.name, error: errorMessage });
-                feedStats.push({
-                    feed: feed.url,
-                    name: feed.name,
-                    status: 'failed',
-                    error: errorMessage,
-                });
+                failures.push({ feed: feed.url, name: feedLabel(feed), error: errorMessage });
+                feedStats.push({ feed: feed.url, name: feedLabel(feed), status: 'failed', error: errorMessage });
                 log.warning(`Feed permanently failed: ${feed.url} — ${errorMessage}`);
             }
         }
 
-        const seen = new Set();
-        const deduped = [];
+        const byKey = new Map();
+        let candidates = [];
 
         for (const item of results) {
-            const key = item.dedupeKey;
-            if (deduplicate && seen.has(key)) continue;
-            seen.add(key);
-            deduped.push(item);
+            const existing = deduplicate ? byKey.get(item.dedupeKey) : null;
+            if (existing) {
+                mergeDuplicate(existing, item);
+                continue;
+            }
+            byKey.set(item.dedupeKey, item);
+            candidates.push(item);
         }
 
-        deduped.sort((a, b) => {
+        candidates.sort((a, b) => {
             const aDate = a.publishedDate ? Date.parse(a.publishedDate) : 0;
             const bDate = b.publishedDate ? Date.parse(b.publishedDate) : 0;
             return bDate - aDate;
         });
 
-        const output = deduped.slice(0, maxItems);
+        let seenState = null;
+        let skippedAlreadySeen = 0;
+        if (onlyNewArticles) {
+            const stateKey = deriveStateKey({
+                stateKey: input.stateKey,
+                feeds,
+                tickers,
+                companies,
+                searchQueries,
+                includeKeywords,
+                excludeKeywords,
+            });
+            const { store, seen } = await loadSeenArticles(stateKey);
+            seenState = { store, seen, stateKey };
+            const before = candidates.length;
+            candidates = candidates.filter((item) => !seen[item.dedupeKey]);
+            skippedAlreadySeen = before - candidates.length;
+            log.info(`Skipped ${skippedAlreadySeen} article(s) already returned by earlier runs (state key ${stateKey}).`);
+        }
+
+        let output = candidates.slice(0, maxItems);
+        const chargeableItems = maxChargeableItems();
+        const spendingLimitReached = output.length > chargeableItems;
+        if (spendingLimitReached) {
+            output = output.slice(0, chargeableItems);
+            log.warning(`Output cut to ${chargeableItems} article(s) to stay within your maximum cost per run.`);
+        }
+
+        let fullTextStats = null;
+        if (includeFullText && output.length) {
+            await Actor.setStatusMessage(`Fetching full text for ${output.length} article(s)...`);
+            fullTextStats = await addFullText(output, { timeoutMs: requestTimeoutMs, maxChars: fullTextMaxChars });
+            log.info('Full text results', fullTextStats);
+        }
+
+        if (output.length) {
+            await Actor.pushData(output);
+        }
+
+        if (seenState && output.length) {
+            await saveSeenArticles(seenState.store, seenState.stateKey, seenState.seen, output.map((item) => item.dedupeKey));
+        }
+
         const feedsSucceeded = feedStats.filter((s) => s.status === 'ok').length;
         const runStatus = resolveRunStatus({
             feedsSucceeded,
-            feedsRequested: feeds.length,
             itemCount: output.length,
             failures,
+            skippedAlreadySeen,
         });
 
         if (runStatus === 'all_feeds_failed') {
@@ -371,17 +440,13 @@ await Actor.main(async () => {
             warnings.push('Feeds returned data but no articles matched your filters.');
         }
 
-        if (output.length) {
-            await Actor.pushData(output);
-        }
-
         const statusMessage = buildStatusMessage({
-            output,
+            itemCount: output.length,
             feedsRequested: feeds.length,
             failures,
-            freeTier,
             runStatus,
             warnings,
+            spendingLimitReached,
         });
 
         await finishRun({
@@ -392,11 +457,17 @@ await Actor.main(async () => {
             feedsRequested: feeds.length,
             feedsSucceeded,
             feedsFailed: failures.length,
-            freeTierLimited: freeTier,
+            onlyNewArticles,
+            skippedAlreadySeen,
+            stateKey: seenState?.stateKey ?? null,
+            spendingLimitReached,
+            fullTextStats,
             warnings,
             feedStats,
             failures,
         });
+
+        if (failOnAllFeedsFailed && runStatus === 'all_feeds_failed') failMessage = statusMessage;
     } catch (error) {
         log.exception(error, 'Unexpected error — finishing run gracefully');
         const statusMessage = `Run completed with errors: ${error.message}`;
@@ -409,10 +480,18 @@ await Actor.main(async () => {
             feedsRequested,
             feedsSucceeded: 0,
             feedsFailed: 0,
-            freeTierLimited: false,
+            onlyNewArticles: false,
+            skippedAlreadySeen: 0,
+            stateKey: null,
+            spendingLimitReached: false,
+            fullTextStats: null,
             warnings: [error.message],
             feedStats: [],
             failures: [{ feed: null, name: null, error: error.message }],
         });
+
+        if (failOnAllFeedsFailed) failMessage = statusMessage;
     }
+
+    if (failMessage) await Actor.fail(failMessage);
 });

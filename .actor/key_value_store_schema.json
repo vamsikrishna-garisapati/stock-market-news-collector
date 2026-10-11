@@ -25,8 +25,8 @@
           },
           "runStatus": {
             "type": "string",
-            "enum": ["ok", "partial", "no_items", "all_feeds_failed", "error"],
-            "description": "Overall run outcome. The Actor always exits successfully; inspect this field for details."
+            "enum": ["ok", "partial", "no_items", "no_new_items", "all_feeds_failed", "error"],
+            "description": "Overall run outcome. The Actor exits successfully unless failOnAllFeedsFailed is set; inspect this field for details."
           },
           "statusMessage": {
             "type": "string",
@@ -44,9 +44,27 @@
             "type": "integer",
             "minimum": 0
           },
-          "freeTierLimited": {
+          "onlyNewArticles": {
             "type": "boolean",
-            "description": "True when output was capped for a free-plan user."
+            "description": "Whether articles returned by earlier runs were skipped."
+          },
+          "skippedAlreadySeen": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Articles skipped because earlier runs already returned them."
+          },
+          "stateKey": {
+            "type": ["string", "null"],
+            "description": "Key of the onlyNewArticles history record in the stock-market-news-state key-value store."
+          },
+          "spendingLimitReached": {
+            "type": "boolean",
+            "description": "True when output was cut to stay within the user's maximum cost per run."
+          },
+          "fullTextStats": {
+            "type": ["object", "null"],
+            "description": "Count of articles per fullTextStatus when includeFullText is true.",
+            "additionalProperties": { "type": "integer" }
           },
           "warnings": {
             "type": "array",

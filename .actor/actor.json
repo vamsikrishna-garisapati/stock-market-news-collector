@@ -1,15 +1,11 @@
 {
   "actorSpecification": 1,
   "name": "stock-market-news-collector",
-  "title": "US Stock Market News Scraper | Ticker Filter | Bloomberg, Yahoo Finance",
-  "description": "Collect latest US stock market news from Bloomberg, MarketWatch, and Yahoo Finance RSS feeds. Filter by stock ticker (AAPL, TSLA), company name, or keyword. Returns structured JSON for trading alerts, fintech APIs, sentiment analysis, and AI/RAG pipelines. No login required.",
-  "version": "0.3",
+  "title": "Stock Market News Scraper | Tickers, Google News, India, Crypto",
+  "description": "Collect stock market and company news from Bloomberg, MarketWatch, CNBC, Yahoo Finance, Economic Times, and crypto outlets, or search Google News for any company or country. Ticker filters, sentiment and event tags, only-new-article alerts, and optional full text. Structured JSON for alerts, dashboards, and AI/RAG. No login required.",
+  "version": "0.5",
   "buildTag": "latest",
   "categories": ["NEWS", "FINANCE"],
-  "meta": {
-    "templateId": "js-start",
-    "generatedBy": "Cursor with Auto"
-  },
   "input": "./input_schema.json",
   "output": "./output_schema.json",
   "readme": "../README.md",

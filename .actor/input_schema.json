@@ -1,25 +1,52 @@
 {
   "title": "Stock Market News Scraper input",
-  "description": "Collect US stock market news from Bloomberg, MarketWatch, and Yahoo Finance RSS feeds. Filter by ticker (AAPL, TSLA), company name, or keywords. Set includeKeywords to [] to disable the default finance keyword filter. Use feedPreset custom for non-US RSS feeds.",
+  "description": "Collect stock market news from Bloomberg, MarketWatch, CNBC, Yahoo Finance, Economic Times, Mint, and crypto outlets, or search Google News for any company, topic, or country. Filter by ticker or keyword, enrich with sentiment and event types, and return only new articles on scheduled runs.",
   "type": "object",
   "schemaVersion": 1,
   "properties": {
     "feedPreset": {
       "title": "Feed preset",
       "type": "string",
-      "description": "Curated RSS feed bundle. us_markets = MarketWatch + Yahoo + Bloomberg (default). custom = use feeds array for any region.",
+      "description": "Curated RSS feed bundle. Use \"none\" to fetch only search queries and ticker feeds, or \"custom\" to supply your own RSS URLs.",
       "editor": "select",
       "default": "us_markets",
       "example": "us_markets",
-      "enum": ["us_markets", "global_markets", "earnings", "custom"],
+      "enum": ["us_markets", "global_markets", "earnings", "india_markets", "crypto", "none", "custom"],
       "enumTitles": [
-        "US markets (MarketWatch, Yahoo, Bloomberg)",
-        "Global markets (Bloomberg, Yahoo, MarketWatch)",
-        "Earnings focus",
+        "US markets (MarketWatch, CNBC, Bloomberg)",
+        "Global markets (Bloomberg, CNBC International, MarketWatch)",
+        "Earnings focus (CNBC Earnings, CNBC Investing, Bloomberg)",
+        "India markets (Economic Times, Mint)",
+        "Crypto (CoinDesk, Cointelegraph, Decrypt, The Block)",
+        "None (search queries and ticker feeds only)",
         "Custom feeds"
       ],
       "sectionCaption": "News sources",
-      "sectionDescription": "Select a preset feed bundle or provide your own RSS/Atom URLs."
+      "sectionDescription": "Pick a preset, search Google News, or provide your own RSS/Atom URLs. Sources are combined."
+    },
+    "searchQueries": {
+      "title": "Google News search queries",
+      "type": "array",
+      "description": "Search Google News for any company, topic, or person (max 10), e.g. \"Apple OR AAPL\", \"Reliance Industries\", \"lithium prices\". Combined with the preset. Google News operators like OR, quotes, site:, and when:7d work. Article links point to Google News redirect URLs.",
+      "editor": "stringList",
+      "default": [],
+      "example": ["Apple OR AAPL", "Reliance Industries"]
+    },
+    "searchLanguage": {
+      "title": "Search language",
+      "type": "string",
+      "description": "Two-letter language code for Google News searches (e.g. en, hi, de, ja).",
+      "editor": "textfield",
+      "default": "en",
+      "pattern": "^[a-zA-Z]{2}$"
+    },
+    "searchCountry": {
+      "title": "Search country",
+      "type": "string",
+      "description": "Two-letter country code for Google News searches (e.g. US, IN, GB, DE, JP).",
+      "editor": "textfield",
+      "default": "US",
+      "pattern": "^[a-zA-Z]{2}$"
     },
     "feeds": {
       "title": "Custom feeds",
@@ -31,12 +58,18 @@
     "tickers": {
       "title": "Stock tickers",
       "type": "array",
-      "description": "Only include articles mentioning these tickers (e.g. AAPL, TSLA, NVDA). Works together with includeKeywords unless includeKeywords is []. Leave empty to disable ticker filter.",
+      "description": "Only include articles about these tickers (e.g. AAPL, TSLA, NVDA, RELIANCE.NS). Each ticker also fetches its Yahoo Finance headline feed (max 20), and well-known company names (Apple, Nvidia, Infosys, ...) count as a match. Leave empty to disable the ticker filter.",
       "editor": "stringList",
       "default": [],
       "example": ["AAPL", "NVDA"],
       "sectionCaption": "Filters",
-      "sectionDescription": "Narrow results by ticker, company name, or keywords."
+      "sectionDescription": "Narrow results by ticker, company name, keywords, or date. Search query results skip ticker and company filters."
+    },
+    "useTickerFeeds": {
+      "title": "Fetch per-ticker feeds",
+      "type": "boolean",
+      "description": "When tickers are set, also fetch each ticker's Yahoo Finance headline feed. Turn off to filter only the preset or custom feeds.",
+      "default": true
     },
     "companies": {
       "title": "Company names",
@@ -57,24 +90,9 @@
     "includeKeywords": {
       "title": "Include keywords",
       "type": "array",
-      "description": "Only include articles where the headline or summary contains at least one keyword. Use an empty array to disable.",
+      "description": "Only include articles where the headline or summary contains at least one keyword. Leave unset to use built-in finance keywords (stock, market, earnings, S&P, Dow, Nasdaq, ...), which apply only to the US, global, earnings, and custom presets when no tickers, companies, or search queries are set. Use [] to disable keyword filtering; an explicit list is always applied.",
       "editor": "json",
-      "default": [
-        "stock",
-        "stocks",
-        "market",
-        "markets",
-        "equity",
-        "equities",
-        "shares",
-        "S&P",
-        "Dow",
-        "Nasdaq",
-        "earnings",
-        "IPO",
-        "Nifty",
-        "Sensex"
-      ]
+      "example": ["stock", "earnings", "Nasdaq"]
     },
     "excludeKeywords": {
       "title": "Exclude keywords",
@@ -83,14 +101,24 @@
       "editor": "json",
       "default": []
     },
+    "hoursBack": {
+      "title": "Hours back",
+      "type": "integer",
+      "description": "Only include articles published within this many hours. Use 0 to disable the date filter.",
+      "default": 24,
+      "minimum": 0,
+      "maximum": 168
+    },
     "maxItems": {
       "title": "Maximum items",
       "type": "integer",
-      "description": "Maximum news items returned after sorting by publishedDate descending.",
+      "description": "Maximum news items returned after sorting by publishedDate descending. Runs also stop at your maximum cost per run.",
       "default": 50,
       "example": 50,
       "minimum": 1,
-      "maximum": 500
+      "maximum": 500,
+      "sectionCaption": "Output",
+      "sectionDescription": "How many articles to return, scheduled-run behavior, and enrichment."
     },
     "maxItemsPerFeed": {
       "title": "Max items per feed",
@@ -99,26 +127,50 @@
       "minimum": 1,
       "maximum": 500
     },
-    "hoursBack": {
-      "title": "Hours back",
+    "onlyNewArticles": {
+      "title": "Only new articles",
+      "type": "boolean",
+      "description": "Skip articles already returned by earlier runs with the same sources and filters. Ideal for scheduled alerts: you only receive (and pay for) new headlines. History is kept for 14 days in a named key-value store.",
+      "default": false
+    },
+    "stateKey": {
+      "title": "History key",
+      "type": "string",
+      "description": "Optional name for the onlyNewArticles history. Runs sharing a key share history, even if their filters differ. Leave empty to derive it from sources and filters.",
+      "editor": "textfield"
+    },
+    "enrichArticles": {
+      "title": "Enrich articles",
+      "type": "boolean",
+      "description": "Add companyDetails (name, exchange, sector), eventTypes (earnings, M&A, analyst ratings, ...), sentimentScore, and sentimentLabel to each article.",
+      "default": true
+    },
+    "includeFullText": {
+      "title": "Include full article text",
+      "type": "boolean",
+      "description": "Fetch each returned article page and extract the readable body text. Skips paywalled publishers (Bloomberg, WSJ, FT, Barron's) and Google News redirect links. Makes runs slower.",
+      "default": false
+    },
+    "fullTextMaxChars": {
+      "title": "Full text max characters",
       "type": "integer",
-      "description": "Only include articles published within this many hours. Use 0 to disable the date filter.",
-      "default": 24,
-      "minimum": 0,
-      "maximum": 168,
-      "sectionCaption": "Advanced",
-      "sectionDescription": "Date range, deduplication, and network settings."
+      "description": "Truncate extracted article text to this many characters.",
+      "default": 10000,
+      "minimum": 500,
+      "maximum": 50000
     },
     "deduplicate": {
       "title": "Deduplicate by link",
       "type": "boolean",
       "description": "Remove duplicate articles that appear in multiple feeds.",
-      "default": true
+      "default": true,
+      "sectionCaption": "Advanced",
+      "sectionDescription": "Deduplication, network settings, and failure handling."
     },
     "requestTimeoutMs": {
       "title": "Request timeout (ms)",
       "type": "integer",
-      "description": "HTTP timeout per feed request.",
+      "description": "HTTP timeout per feed or article request.",
       "default": 15000,
       "minimum": 5000,
       "maximum": 120000
@@ -130,6 +182,12 @@
       "default": 1,
       "minimum": 0,
       "maximum": 3
+    },
+    "failOnAllFeedsFailed": {
+      "title": "Fail run when all feeds fail",
+      "type": "boolean",
+      "description": "Mark the run as FAILED (instead of succeeded with runStatus all_feeds_failed or error) so Apify monitoring and webhooks alert you.",
+      "default": false
     }
   }
 }

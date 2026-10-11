@@ -12,6 +12,8 @@
           "source",
           "publishedDate",
           "tickers",
+          "sentimentLabel",
+          "eventTypes",
           "summary",
           "articleLink"
         ]
@@ -23,6 +25,8 @@
           "source": { "label": "Source", "format": "text" },
           "publishedDate": { "label": "Published", "format": "date" },
           "tickers": { "label": "Tickers", "format": "array" },
+          "sentimentLabel": { "label": "Sentiment", "format": "text" },
+          "eventTypes": { "label": "Events", "format": "array" },
           "summary": { "label": "Summary", "format": "text" },
           "articleLink": { "label": "Link", "format": "link" }
         }
@@ -67,7 +71,7 @@
       "summary": {
         "type": "string",
         "title": "Summary",
-        "description": "RSS description or snippet, truncated to 320 characters. Often empty for Yahoo Finance.",
+        "description": "RSS description or snippet, truncated to 320 characters. May be empty when the publisher omits it.",
         "example": "US equities climbed as investors weighed economic data."
       },
       "categories": {
@@ -86,9 +90,67 @@
       "tickers": {
         "type": "array",
         "title": "Detected tickers",
-        "description": "Stock symbols auto-detected in headline and summary (e.g. $AAPL, NYSE: MSFT).",
+        "description": "Stock symbols detected in headline and summary (e.g. $AAPL, NYSE: MSFT, or company names like Apple), plus the ticker of any per-ticker feed the article came from.",
         "items": { "type": "string" },
         "example": ["AAPL"]
+      },
+      "companyDetails": {
+        "type": "array",
+        "title": "Company details",
+        "description": "Well-known companies mentioned in the article with ticker, name, exchange, and sector. Present when enrichArticles is true.",
+        "items": {
+          "type": "object",
+          "properties": {
+            "ticker": { "type": "string" },
+            "name": { "type": "string" },
+            "exchange": { "type": "string" },
+            "sector": { "type": "string" }
+          }
+        },
+        "example": [{ "ticker": "AAPL", "name": "Apple Inc.", "exchange": "NASDAQ", "sector": "Technology" }]
+      },
+      "eventTypes": {
+        "type": "array",
+        "title": "Event types",
+        "description": "Rule-based event tags: earnings, guidance, mergers_acquisitions, analyst_rating, ipo, dividends_buybacks, legal_regulatory, executive_change, layoffs_restructuring, macro. Present when enrichArticles is true.",
+        "items": { "type": "string" },
+        "example": ["earnings", "guidance"]
+      },
+      "sentimentScore": {
+        "type": "number",
+        "title": "Sentiment score",
+        "description": "Finance word-list sentiment from -1 (negative) to 1 (positive). Best-effort; present when enrichArticles is true.",
+        "example": 0.5
+      },
+      "sentimentLabel": {
+        "type": "string",
+        "title": "Sentiment label",
+        "description": "positive (score >= 0.2), negative (score <= -0.2), or neutral. Present when enrichArticles is true.",
+        "example": "positive"
+      },
+      "searchQuery": {
+        "type": ["string", "null"],
+        "title": "Search query",
+        "description": "Google News search query that produced the article; null for feed articles.",
+        "example": null
+      },
+      "fullText": {
+        "type": ["string", "null"],
+        "title": "Full text",
+        "description": "Readable article body text, truncated to fullTextMaxChars. Present when includeFullText is true; null when extraction was skipped or failed.",
+        "example": "Tesla Inc. delivered 95,366 China-made electric vehicles in September..."
+      },
+      "fullTextStatus": {
+        "type": "string",
+        "title": "Full text status",
+        "description": "ok, paywalled, unsupported (e.g. Google News links), empty, or failed. Present when includeFullText is true.",
+        "example": "ok"
+      },
+      "fullTextError": {
+        "type": "string",
+        "title": "Full text error",
+        "description": "Error detail when fullTextStatus is failed (e.g. HTTP 403, timeout).",
+        "example": "HTTP 403"
       },
       "dedupeKey": {
         "type": "string",
@@ -100,7 +162,7 @@
         "type": "string",
         "title": "Source feed URL",
         "description": "RSS/Atom feed URL this article was collected from.",
-        "example": "https://feeds.bloomberg.com/markets/news.rss"
+        "example": "https://www.bloomberg.com/feeds/markets/news.rss"
       },
       "fetchedAt": {
         "type": "string",
