@@ -132,7 +132,7 @@ Each ticker adds its Yahoo Finance headline feed (max 20 tickers; disable with `
 2. **Assuming run failed on empty dataset** — check `OUTPUT.runStatus`: `no_new_items` means `onlyNewArticles` already returned everything; `no_items` means filters matched nothing.
 3. **Expecting full text by default** — set `includeFullText: true`; paywalled publishers and Google News links return `fullTextStatus` `paywalled` or `unsupported`.
 4. **Expecting publisher URLs from Google News** — `articleLink` is a news.google.com redirect; `source` is the real publisher.
-5. **Sharing `onlyNewArticles` history unintentionally** — history is keyed by sources and filters; pass distinct `stateKey` values to separate runs with identical setups.
+5. **Sharing `onlyNewArticles` history unintentionally** — history is separated by sources and filters; pass distinct `stateKey` values (stored encrypted) to separate runs with identical setups.
 
 ## Apify API
 

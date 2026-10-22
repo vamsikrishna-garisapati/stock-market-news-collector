@@ -168,7 +168,7 @@ Search queries and ticker feeds are added on top of any preset.
 | `hoursBack` | `24` | Only articles from the last N hours (`0` = no date filter) |
 | `maxItems` | `50` | Max articles returned (up to 500) |
 | `onlyNewArticles` | `false` | Skip articles returned by earlier runs with the same setup |
-| `stateKey` | auto | Optional name for the `onlyNewArticles` history |
+| `stateKey` | auto | Optional name for the `onlyNewArticles` history. Stored encrypted. |
 | `enrichArticles` | `true` | Add company details, event types, and sentiment |
 | `includeFullText` | `false` | Fetch and extract the article body |
 | `failOnAllFeedsFailed` | `false` | Mark the run FAILED when every feed fails, so monitoring alerts you |
@@ -187,7 +187,7 @@ Enrichment is rule-based and fast. Treat it as a first-pass signal, not investme
 
 ## Only new articles
 
-With `onlyNewArticles: true`, the Actor remembers which articles each setup has returned (for 14 days) in a named key-value store, `stock-market-news-state`, in your account. Runs with the same sources and filters share history, so separate watchlists don't hide each other's news. Set `stateKey` to share or separate history explicitly. When nothing is new, `runStatus` is `no_new_items` and no articles are charged.
+With `onlyNewArticles: true`, the Actor remembers which articles each setup has returned (for 14 days) in a named key-value store, `stock-market-news-state`, in your account. Runs with the same sources and filters share history, so separate watchlists don't hide each other's news. Set `stateKey` to share or separate history explicitly. That value is stored encrypted. When nothing is new, `runStatus` is `no_new_items` and no articles are charged.
 
 ## Reliability
 
@@ -199,7 +199,7 @@ With `onlyNewArticles: true`, the Actor remembers which articles each setup has 
 
 ## Pricing
 
-Pay per article returned, plus a small start fee and Apify platform usage. Runs stop at your **maximum cost per run**, and `onlyNewArticles` means scheduled runs don't charge again for headlines you already have.
+Pay a fixed price per article returned, plus a small start fee. Silver subscribers pay 10% less and Gold subscribers pay 20% less. Runs stop at your **maximum cost per run**, and `onlyNewArticles` means scheduled runs don't charge again for headlines you already have.
 
 ## Integrations
 

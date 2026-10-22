@@ -134,10 +134,11 @@
       "default": false
     },
     "stateKey": {
-      "title": "History key",
+      "title": "History name",
       "type": "string",
-      "description": "Optional name for the onlyNewArticles history. Runs sharing a key share history, even if their filters differ. Leave empty to derive it from sources and filters.",
-      "editor": "textfield"
+      "description": "Optional name for the onlyNewArticles history. Runs that share a name share history, even if their filters differ. Leave empty to derive it from sources and filters. Stored encrypted.",
+      "editor": "textfield",
+      "isSecret": true
     },
     "enrichArticles": {
       "title": "Enrich articles",
