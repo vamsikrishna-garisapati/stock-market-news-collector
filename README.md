@@ -1,8 +1,40 @@
 ## Stock Market News Scraper | Tickers, Google News, India, Crypto
 
-Collect **stock market and company news** in clean JSON: Bloomberg, MarketWatch, CNBC, and Yahoo Finance for US markets, Economic Times and Mint for India, CoinDesk and Cointelegraph for crypto, or **search Google News for any company, topic, or country**. Filter by ticker or keyword, get **sentiment and event tags** on every article, and on scheduled runs receive **only new headlines**. No login, no API keys.
+Need finance headlines as **structured JSON** without maintaining scrapers for every publisher?
 
-Runs in seconds over public RSS feeds. Built for watchlist alerts, trading dashboards, sentiment pipelines, and AI/RAG datasets.
+**Use it for:**
+
+1. **Watchlist alerts** — schedule with tickers and `onlyNewArticles` so you only get new headlines
+2. **Any company or topic** — Google News search by query, country, and language
+3. **India / crypto / US markets** — curated presets for dashboards, sentiment triage, and AI/RAG
+
+### Start in 30 seconds
+
+1. Leave the default **US markets** prefill (`us_markets`, 50 items, last 24 hours) — or switch to India / crypto
+2. Click **Start**
+3. Open the **Output** tab for headlines with `tickers`, `sentimentLabel`, and `eventTypes`
+
+> **Tip — zero results?** An explicit `includeKeywords` list or a short `hoursBack` window often filters everything out. Clear keywords (or set `[]`) and keep `useTickerFeeds` on when using tickers. When `count` is 0, check `OUTPUT.runStatus` (`no_items`, `no_new_items`, `all_feeds_failed`, …) — the run still succeeds by default.
+
+**What this is:** Public **RSS feeds + Google News** → JSON. Headlines and metadata from sources that include MarketWatch, CNBC, Yahoo Finance, Economic Times, Mint, and crypto outlets — **not** paywalled full text from Bloomberg, WSJ, or FT. Optional `includeFullText` works only on non-paywalled pages.
+
+Sentiment and event tags are best-effort, rule-based signals — **not investment advice**.
+
+→ [Try the Actor on Apify](https://apify.com/vamsi-krishna/stock-market-news-collector)
+
+## Screenshots
+
+**Output (tickers/sentiment)**
+
+![Output (tickers/sentiment)](https://raw.githubusercontent.com/vamsikrishna-garisapati/stock-market-news-collector/main/.actor/screenshots/01-output-tickers-sentiment.png)
+
+**Input (watchlist)**
+
+![Input (watchlist)](https://raw.githubusercontent.com/vamsikrishna-garisapati/stock-market-news-collector/main/.actor/screenshots/02-input-watchlist.png)
+
+**India markets output**
+
+![India markets output](https://raw.githubusercontent.com/vamsikrishna-garisapati/stock-market-news-collector/main/.actor/screenshots/03-india-markets-output.png)
 
 ## For AI agents
 

@@ -2,7 +2,7 @@
   "actorSpecification": 1,
   "name": "stock-market-news-collector",
   "title": "Stock Market News Scraper | Tickers, Google News, India, Crypto",
-  "description": "Collect stock market and company news from Bloomberg, MarketWatch, CNBC, Yahoo Finance, Economic Times, and crypto outlets, or search Google News for any company or country. Ticker filters, sentiment and event tags, only-new-article alerts, and optional full text. Structured JSON for alerts, dashboards, and AI/RAG. No login required.",
+  "description": "Public RSS + Google News → JSON. Sources include MarketWatch, CNBC, Yahoo Finance, ET, Mint & crypto, plus Google News for any company/country. Tickers, sentiment & event tags (best-effort, not investment advice), only-new alerts, optional non-paywalled text. Alerts, dashboards & AI/RAG. No login.",
   "version": "0.5",
   "buildTag": "latest",
   "categories": ["NEWS", "FINANCE"],
