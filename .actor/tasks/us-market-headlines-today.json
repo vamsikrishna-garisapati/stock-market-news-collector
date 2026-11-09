@@ -1,0 +1,44 @@
+{
+  "_comment": "Public task vamsi-krishna/us-market-headlines-today (id 6b78cbCPmiBsRz6YH). Sync via apify api PUT actor-tasks/{id}. description <=400; seoTitle <=60; seoDescription <=160; FAQ Q<=120 A<=250. seoKeywords are local-only.",
+  "name": "us-market-headlines-today",
+  "title": "Get latest US stock market headlines from the last 24 hours",
+  "description": "Collect today's US stock market news from MarketWatch, CNBC, and Bloomberg as structured JSON. Get headlines, links, tickers, sentiment, and event tags in seconds—no login. Click Start, or schedule with Only new articles for Slack and Zapier alerts.",
+  "input": {
+    "feedPreset": "us_markets",
+    "hoursBack": 24,
+    "maxItems": 50,
+    "deduplicate": true,
+    "enrichArticles": true,
+    "onlyNewArticles": false
+  },
+  "seoTitle": "US stock market headlines today | CNBC & MarketWatch",
+  "seoDescription": "Get today's US equity headlines from MarketWatch, CNBC, and Bloomberg as JSON with tickers and sentiment. One-click Apify task—no login required.",
+  "faq": [
+    {
+      "question": "What news does this US market headlines task return?",
+      "answer": "The US market headlines today task returns MarketWatch, CNBC, and Bloomberg stories as JSON with headline, link, tickers, sentiment, and event tags."
+    },
+    {
+      "question": "Do I need to change any input before starting?",
+      "answer": "No. The US market headlines today task is ready: click Start for the last 24 hours of US equity news (up to 50 items)."
+    },
+    {
+      "question": "Can I schedule only new US stock headlines?",
+      "answer": "Yes. Duplicate the US market headlines today task, turn on Only new articles, and schedule it for Slack, Zapier, or webhook alerts."
+    },
+    {
+      "question": "Which publishers are included in this task?",
+      "answer": "The US market headlines today task uses the us_markets preset: MarketWatch Top Stories, MarketWatch Breaking News, CNBC Investing, and Bloomberg Markets."
+    }
+  ],
+  "seoKeywords": [
+    "us stock market headlines today",
+    "stock market news api",
+    "marketwatch rss api",
+    "cnbc investing news json",
+    "bloomberg markets headlines",
+    "us equity news scraper",
+    "stock ticker news feed",
+    "wall street headlines api"
+  ]
+}
