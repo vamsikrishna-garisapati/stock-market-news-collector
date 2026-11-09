@@ -7,10 +7,18 @@ export const DEFAULT_INCLUDE_KEYWORDS = [
 ];
 
 export const TICKER_FALSE_POSITIVES = new Set([
+    // Common English words / generic abbreviations
     'A', 'AI', 'AM', 'AN', 'API', 'ARE', 'AS', 'AT', 'BE', 'BIG', 'CAN', 'CEO', 'CO',
     'DAY', 'DO', 'ETF', 'EU', 'FDA', 'FOR', 'GDP', 'GO', 'HAS', 'HE', 'HER', 'HIS',
     'IF', 'IN', 'IPO', 'IS', 'IT', 'ITS', 'LOW', 'NEW', 'NO', 'NOT', 'OF', 'ON',
     'OR', 'OUR', 'OUT', 'PM', 'SO', 'THE', 'TO', 'UK', 'UP', 'US', 'USD', 'VS', 'WE',
+    // Indian regulatory bodies, exchanges, and financial acronyms (not tickers)
+    'RBI', 'NSE', 'BSE', 'SEBI', 'NIFTY', 'GST', 'UPI', 'FPI', 'FDI', 'FII',
+    'PAT', 'EPS', 'YOY', 'QOQ', 'NII', 'NPA', 'ROE', 'ROA', 'EBIT', 'EBITDA',
+    // Global macro / central bank acronyms (not tickers)
+    'CPI', 'PPI', 'IMF', 'WTO', 'BOE', 'ECB', 'PCE', 'PMI', 'PBoC',
+    // Currency codes that frequently appear in Indian and global finance text
+    'INR', 'CAD', 'AUD', 'CHF', 'JPY', 'GBP', 'EUR',
 ]);
 
 export const MAX_CUSTOM_FEEDS = 20;

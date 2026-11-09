@@ -11,7 +11,9 @@ export const FEEDS = {
     cnbcInternational: { name: 'CNBC International', url: 'https://www.cnbc.com/id/100727362/device/rss/rss.html' },
     economicTimesMarkets: { name: 'Economic Times Markets', url: 'https://economictimes.indiatimes.com/markets/rssfeeds/1977021501.cms' },
     economicTimesStocks: { name: 'Economic Times Stocks', url: 'https://economictimes.indiatimes.com/markets/stocks/rssfeeds/2146842.cms' },
+    economicTimesSensex: { name: 'Economic Times Sensex/Nifty', url: 'https://economictimes.indiatimes.com/markets/stocks/recos/rssfeeds/2146842.cms' },
     livemintMarkets: { name: 'Mint Markets', url: 'https://www.livemint.com/rss/markets' },
+    businessStandard: { name: 'Business Standard Markets', url: 'https://www.business-standard.com/rss/markets-106.rss' },
     coinDesk: { name: 'CoinDesk', url: 'https://www.coindesk.com/arc/outboundfeeds/rss/' },
     cointelegraph: { name: 'Cointelegraph', url: 'https://cointelegraph.com/rss' },
     decrypt: { name: 'Decrypt', url: 'https://decrypt.co/feed' },
@@ -39,7 +41,12 @@ export const FEED_PRESETS = {
         useDefaultKeywords: true,
     },
     india_markets: {
-        feeds: [FEEDS.economicTimesMarkets, FEEDS.economicTimesStocks, FEEDS.livemintMarkets],
+        feeds: [
+            FEEDS.economicTimesMarkets,
+            FEEDS.economicTimesStocks,
+            FEEDS.livemintMarkets,
+            FEEDS.businessStandard,
+        ],
         useDefaultKeywords: false,
     },
     crypto: {

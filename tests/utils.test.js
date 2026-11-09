@@ -85,6 +85,12 @@ describe('detectTickers', () => {
     it('filters false positives', () => {
         assert.deepEqual(detectTickers('THE market is UP today'), []);
     });
+
+    it('filters Indian regulatory and macro acronyms', () => {
+        assert.deepEqual(detectTickers('RBI keeps rates; NSE and BSE closed on account of SEBI directive'), []);
+        assert.deepEqual(detectTickers('CPI inflation data; FII outflows; NPA concerns for PSU banks'), []);
+        assert.deepEqual(detectTickers('INR strengthens against EUR and GBP after IMF forecast'), []);
+    });
 });
 
 describe('matchesTickerFilter', () => {

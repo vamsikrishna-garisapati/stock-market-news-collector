@@ -24,6 +24,31 @@ describe('detectCompanies', () => {
         const tickers = detectCompanies('AT&T and Larsen & Toubro report results; Infosys gains').map((c) => c.ticker);
         assert.deepEqual(tickers.sort(), ['INFY.NS', 'LT.NS', 'T']);
     });
+
+    it('detects extended Nifty 50 companies by name', () => {
+        const headline = 'Sun Pharma and HCL Technologies drag Nifty; Axis Bank hits 52-week high; Zomato surges';
+        const tickers = detectCompanies(headline).map((c) => c.ticker).sort();
+        assert.ok(tickers.includes('SUNPHARMA.NS'), 'should detect Sun Pharma');
+        assert.ok(tickers.includes('HCLTECH.NS'), 'should detect HCL Technologies');
+        assert.ok(tickers.includes('AXISBANK.NS'), 'should detect Axis Bank');
+        assert.ok(tickers.includes('ZOMATO.NS'), 'should detect Zomato');
+    });
+
+    it('detects Tata group companies without cross-matching', () => {
+        const headline = 'Tata Steel and Tata Motors rise; Tata Consumer Products beats estimates';
+        const tickers = detectCompanies(headline).map((c) => c.ticker).sort();
+        assert.ok(tickers.includes('TATASTEEL.NS'), 'should detect Tata Steel');
+        assert.ok(tickers.includes('TATAMOTORS.NS'), 'should detect Tata Motors');
+        assert.ok(tickers.includes('TATACONSUM.NS'), 'should detect Tata Consumer Products');
+    });
+
+    it('detects Adani group companies', () => {
+        const headline = 'Adani Ports falls; Adani Green Energy hits record; Adani Enterprises recovers';
+        const tickers = detectCompanies(headline).map((c) => c.ticker).sort();
+        assert.ok(tickers.includes('ADANIPORTS.NS'), 'should detect Adani Ports');
+        assert.ok(tickers.includes('ADANIGREEN.NS'), 'should detect Adani Green Energy');
+        assert.ok(tickers.includes('ADANIENT.NS'), 'should detect Adani Enterprises');
+    });
 });
 
 describe('classifyEvents', () => {
