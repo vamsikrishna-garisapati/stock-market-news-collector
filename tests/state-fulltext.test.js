@@ -26,6 +26,29 @@ describe('deriveStateKey', () => {
     it('uses and sanitizes a user-supplied key', () => {
         assert.equal(deriveStateKey({ ...baseConfig, stateKey: 'my watchlist/1' }), 'seen-my-watchlist-1');
     });
+
+    it('keeps the same key when enrichment filters are inactive', () => {
+        assert.equal(
+            deriveStateKey(baseConfig),
+            deriveStateKey({
+                ...baseConfig,
+                filterEventTypes: [],
+                minSentimentScore: null,
+                maxSentimentScore: null,
+            }),
+        );
+    });
+
+    it('differs when enrichment filters are set', () => {
+        assert.notEqual(
+            deriveStateKey(baseConfig),
+            deriveStateKey({ ...baseConfig, filterEventTypes: ['earnings'] }),
+        );
+        assert.notEqual(
+            deriveStateKey(baseConfig),
+            deriveStateKey({ ...baseConfig, maxSentimentScore: -0.1 }),
+        );
+    });
 });
 
 describe('pruneSeen', () => {

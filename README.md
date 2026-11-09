@@ -41,7 +41,9 @@ Sentiment and event tags are best-effort, rule-based signals — **not investmen
 This Actor is designed for MCP and API discovery:
 
 - **Search terms:** stock market news, company news API, ticker news, Google News finance, India stock news, crypto news, financial news sentiment
+- **Apify username:** `vamsi-krishna`
 - **Actor name:** `stock-market-news-collector`
+- **Full Actor ID:** `vamsi-krishna/stock-market-news-collector`
 - **Primary output:** dataset items (`headline`, `articleLink`, `tickers`, `publishedDate`, `sentimentLabel`, `eventTypes`)
 - **Run outcome:** succeeds by default — check `OUTPUT.runStatus` when `count` is 0
 - **Agent guide:** see [AGENTS.md](./AGENTS.md) for input recipes, output fields, and common mistakes
@@ -108,6 +110,18 @@ Each ticker pulls its own Yahoo Finance headline feed, and company names like "A
 }
 ```
 
+Negative earnings-only alert:
+
+```json
+{
+  "feedPreset": "us_markets",
+  "tickers": ["AAPL"],
+  "onlyNewArticles": true,
+  "filterEventTypes": ["earnings"],
+  "maxSentimentScore": -0.1
+}
+```
+
 ### Google News search, any company or country
 
 ```json
@@ -161,7 +175,7 @@ Google News operators work: `"Apple OR AAPL"`, `"lithium site:reuters.com"`, `"n
 import { ApifyClient } from 'apify-client';
 
 const client = new ApifyClient({ token: 'YOUR_APIFY_TOKEN' });
-const run = await client.actor('YOUR_USERNAME/stock-market-news-collector').call({
+const run = await client.actor('vamsi-krishna/stock-market-news-collector').call({
     tickers: ['AAPL', 'NVDA'],
     onlyNewArticles: true,
 });
@@ -202,6 +216,8 @@ Search queries and ticker feeds are added on top of any preset.
 | `onlyNewArticles` | `false` | Skip articles returned by earlier runs with the same setup |
 | `stateKey` | auto | Optional name for the `onlyNewArticles` history. Stored encrypted. |
 | `enrichArticles` | `true` | Add company details, event types, and sentiment |
+| `filterEventTypes` | `[]` | Keep articles with at least one of these event types (OR) |
+| `minSentimentScore` / `maxSentimentScore` | unset | Inclusive sentiment bounds (-1 to 1); unset disables |
 | `includeFullText` | `false` | Fetch and extract the article body |
 | `failOnAllFeedsFailed` | `false` | Mark the run FAILED when every feed fails, so monitoring alerts you |
 

@@ -249,6 +249,70 @@ export function matchesCompanyFilter(searchable, companies) {
     return companies.some((company) => lower.includes(String(company).toLowerCase()));
 }
 
+/**
+ * Keep articles that match enrichment filters. Empty/omitted filters are no-ops.
+ * Missing sentimentScore is treated as 0 when a sentiment bound is set.
+ */
+export function applyEnrichmentFilters(articles, {
+    filterEventTypes = [],
+    minSentimentScore = null,
+    maxSentimentScore = null,
+} = {}) {
+    const eventTypes = Array.isArray(filterEventTypes) ? filterEventTypes.filter(Boolean) : [];
+    const hasEventFilter = eventTypes.length > 0;
+    const hasMin = minSentimentScore != null && Number.isFinite(Number(minSentimentScore));
+    const hasMax = maxSentimentScore != null && Number.isFinite(Number(maxSentimentScore));
+    if (!hasEventFilter && !hasMin && !hasMax) return articles;
+
+    const min = hasMin ? Number(minSentimentScore) : null;
+    const max = hasMax ? Number(maxSentimentScore) : null;
+
+    return articles.filter((article) => {
+        if (hasEventFilter) {
+            const types = Array.isArray(article.eventTypes) ? article.eventTypes : [];
+            if (!eventTypes.some((type) => types.includes(type))) return false;
+        }
+
+        if (hasMin || hasMax) {
+            const score = Number.isFinite(article.sentimentScore) ? article.sentimentScore : 0;
+            if (hasMin && score < min) return false;
+            if (hasMax && score > max) return false;
+        }
+
+        return true;
+    });
+}
+
+/** Normalize filterEventTypes to known ids; returns { types, unknown }. */
+export function normalizeFilterEventTypes(raw, allowedIds) {
+    const allowed = new Set(allowedIds);
+    const types = [];
+    const unknown = [];
+    const seen = new Set();
+
+    for (const value of Array.isArray(raw) ? raw : []) {
+        const id = String(value || '').trim();
+        if (!id) continue;
+        if (!allowed.has(id)) {
+            if (!unknown.includes(id)) unknown.push(id);
+            continue;
+        }
+        if (!seen.has(id)) {
+            seen.add(id);
+            types.push(id);
+        }
+    }
+
+    return { types, unknown };
+}
+
+export function enrichmentFiltersActive({ filterEventTypes, minSentimentScore, maxSentimentScore }) {
+    const hasEvents = Array.isArray(filterEventTypes) && filterEventTypes.length > 0;
+    const hasMin = minSentimentScore != null && Number.isFinite(Number(minSentimentScore));
+    const hasMax = maxSentimentScore != null && Number.isFinite(Number(maxSentimentScore));
+    return hasEvents || hasMin || hasMax;
+}
+
 export function resolveRunStatus({ feedsSucceeded, itemCount, failures, skippedAlreadySeen = 0 }) {
     if (feedsSucceeded === 0) return 'all_feeds_failed';
     if (itemCount === 0) return skippedAlreadySeen > 0 ? 'no_new_items' : 'no_items';

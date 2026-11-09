@@ -9,22 +9,42 @@ const MAX_SEEN_KEYS = 20_000;
  * Runs with the same sources and filters share one history, so separate
  * scheduled tasks (e.g. different watchlists) don't hide each other's articles.
  */
-export function deriveStateKey({ stateKey, feeds, tickers, companies, searchQueries, includeKeywords, excludeKeywords }) {
+export function deriveStateKey({
+    stateKey,
+    feeds,
+    tickers,
+    companies,
+    searchQueries,
+    includeKeywords,
+    excludeKeywords,
+    filterEventTypes = [],
+    minSentimentScore = null,
+    maxSentimentScore = null,
+}) {
     if (stateKey) {
         const safe = String(stateKey).replace(/[^a-zA-Z0-9!\-_.'()]/g, '-').slice(0, 200);
         if (safe) return `seen-${safe}`;
     }
 
-    const fingerprint = JSON.stringify({
+    // Omit inactive enrichment filters so existing onlyNewArticles histories stay stable.
+    const fingerprint = {
         feeds: feeds.map((feed) => feed.url).sort(),
         tickers: [...tickers].map(String).sort(),
         companies: [...companies].map(String).sort(),
         searchQueries: [...searchQueries].map(String).sort(),
         includeKeywords: [...includeKeywords].map(String).sort(),
         excludeKeywords: [...excludeKeywords].map(String).sort(),
-    });
+    };
+    const eventTypes = [...(filterEventTypes || [])].map(String).filter(Boolean).sort();
+    if (eventTypes.length) fingerprint.filterEventTypes = eventTypes;
+    if (minSentimentScore != null && Number.isFinite(Number(minSentimentScore))) {
+        fingerprint.minSentimentScore = Number(minSentimentScore);
+    }
+    if (maxSentimentScore != null && Number.isFinite(Number(maxSentimentScore))) {
+        fingerprint.maxSentimentScore = Number(maxSentimentScore);
+    }
 
-    return `seen-${createHash('sha256').update(fingerprint).digest('hex').slice(0, 16)}`;
+    return `seen-${createHash('sha256').update(JSON.stringify(fingerprint)).digest('hex').slice(0, 16)}`;
 }
 
 export function pruneSeen(seen, now = Date.now()) {

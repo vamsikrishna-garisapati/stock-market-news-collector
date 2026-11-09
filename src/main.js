@@ -1,10 +1,11 @@
 import { Actor, log } from 'apify';
-import { classifyEvents, detectCompanies, scoreSentiment } from './enrich.js';
+import { EVENT_TYPE_IDS, classifyEvents, detectCompanies, scoreSentiment } from './enrich.js';
 import { DEFAULT_PRESET, FEED_PRESETS, createParser } from './feeds.js';
 import { addFullText } from './fulltext.js';
 import { deriveStateKey, loadSeenArticles, saveSeenArticles } from './state.js';
 import {
     MAX_HEADLINE_LENGTH,
+    applyEnrichmentFilters,
     articleSearchText,
     buildGoogleNewsFeeds,
     buildStatusMessage,
@@ -14,8 +15,10 @@ import {
     containsAnyKeyword,
     containsExcludedKeyword,
     detectTickers,
+    enrichmentFiltersActive,
     matchesCompanyFilter,
     matchesTickerFilter,
+    normalizeFilterEventTypes,
     resolveIncludeKeywords,
     resolveRunStatus,
     sanitizeHttpUrl,
@@ -280,8 +283,33 @@ await Actor.main(async () => {
         const searchQueries = Array.isArray(input.searchQueries) ? input.searchQueries : [];
         const tickerMatchMode = input.tickerMatchMode === 'all' ? 'all' : 'any';
         const deduplicate = input.deduplicate !== false;
-        const enrich = input.enrichArticles !== false;
+        let enrich = input.enrichArticles !== false;
         const onlyNewArticles = input.onlyNewArticles === true;
+
+        const { types: filterEventTypes, unknown: unknownEventTypes } = normalizeFilterEventTypes(
+            input.filterEventTypes,
+            EVENT_TYPE_IDS,
+        );
+        const minSentimentScore = input.minSentimentScore == null || input.minSentimentScore === ''
+            ? null
+            : Number(input.minSentimentScore);
+        const maxSentimentScore = input.maxSentimentScore == null || input.maxSentimentScore === ''
+            ? null
+            : Number(input.maxSentimentScore);
+        const finiteMin = Number.isFinite(minSentimentScore) ? minSentimentScore : null;
+        const finiteMax = Number.isFinite(maxSentimentScore) ? maxSentimentScore : null;
+        const enrichmentFilterOpts = {
+            filterEventTypes,
+            minSentimentScore: finiteMin,
+            maxSentimentScore: finiteMax,
+        };
+        if (unknownEventTypes.length) {
+            warn(warnings, `Ignoring unknown filterEventTypes: ${unknownEventTypes.join(', ')}`);
+        }
+        if (enrichmentFiltersActive(enrichmentFilterOpts) && !enrich) {
+            enrich = true;
+            warn(warnings, 'Enabled enrichArticles because sentiment/event filters require enrichment.');
+        }
         const includeFullText = input.includeFullText === true;
         const fullTextMaxChars = Math.min(Math.max(Number(input.fullTextMaxChars ?? 10_000), 500), 50_000);
         const maxItemsPerFeed = input.maxItemsPerFeed
@@ -394,6 +422,9 @@ await Actor.main(async () => {
                 searchQueries,
                 includeKeywords,
                 excludeKeywords,
+                filterEventTypes,
+                minSentimentScore: finiteMin,
+                maxSentimentScore: finiteMax,
             });
             const { store, seen } = await loadSeenArticles(stateKey);
             seenState = { store, seen, stateKey };
@@ -401,6 +432,12 @@ await Actor.main(async () => {
             candidates = candidates.filter((item) => !seen[item.dedupeKey]);
             skippedAlreadySeen = before - candidates.length;
             log.info(`Skipped ${skippedAlreadySeen} article(s) already returned by earlier runs (state key ${stateKey}).`);
+        }
+
+        if (enrichmentFiltersActive(enrichmentFilterOpts)) {
+            const beforeFilter = candidates.length;
+            candidates = applyEnrichmentFilters(candidates, enrichmentFilterOpts);
+            log.info(`Enrichment filters removed ${beforeFilter - candidates.length} article(s); ${candidates.length} remain.`);
         }
 
         let output = candidates.slice(0, maxItems);

@@ -153,6 +153,9 @@ const EVENT_PATTERNS = {
     ],
 };
 
+/** Stable list of event type ids for input validation and filters. */
+export const EVENT_TYPE_IDS = Object.freeze(Object.keys(EVENT_PATTERNS));
+
 const POSITIVE_WORD = /^(beats?|beating|surg(e|es|ed|ing)|soar(s|ed|ing)?|rall(y|ies|ied|ying)|jump(s|ed|ing)?|gain(s|ed|ing)?|highs|upgrad(e|es|ed)|outperform(s|ed)?|tops|topped|rebound(s|ed|ing)?|climb(s|ed|ing)?|rises?|rising|rose|boost(s|ed)?|strong(er)?|bullish|optimis(m|tic)|recover(s|ed|y)|profits?|profitable|wins?|won|approv(al|ed|es)|growth)$/;
 const NEGATIVE_WORD = /^(miss(es|ed)?|plung(e|es|ed|ing)|tumbl(e|es|ed|ing)|slump(s|ed|ing)?|falls?|falling|fell|drop(s|ped|ping)?|downgrad(e|es|ed)|loss(es)?|weak(er|ness)?|lawsuits?|probes?|warn(s|ed|ing)?|slid(e|es|ing)?|sinks?|sank|layoffs?|bankrupt(cy)?|recalls?|fraud|bearish|sell-?offs?|selloffs?|crash(es|ed)?|slash(es|ed)?|declin(e|es|ed|ing)|concerns?|fears?|plummet(s|ed|ing)?|sued|cuts?)$/;
 const NEGATORS = new Set(['not', 'no', 'never', 'without', "won't", "don't", "doesn't", "didn't", "isn't", "aren't", "wasn't", "can't", 'fails', 'failed', 'unlikely']);

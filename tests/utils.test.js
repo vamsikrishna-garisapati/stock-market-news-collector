@@ -1,18 +1,22 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
+import { EVENT_TYPE_IDS } from '../src/enrich.js';
 import {
     DEFAULT_INCLUDE_KEYWORDS,
     MAX_SEARCH_QUERIES,
     MAX_TICKER_FEEDS,
+    applyEnrichmentFilters,
     buildGoogleNewsFeeds,
     buildStatusMessage,
     buildTickerFeeds,
     canonicalizeUrl,
     cleanText,
     detectTickers,
+    enrichmentFiltersActive,
     isValidHttpUrl,
     matchesKeyword,
     matchesTickerFilter,
+    normalizeFilterEventTypes,
     resolveIncludeKeywords,
     resolveRunStatus,
     stripPublisherSuffix,
@@ -285,5 +289,52 @@ describe('validateCustomFeeds', () => {
         const { valid, skipped } = validateCustomFeeds(feeds);
         assert.equal(valid.length, 20);
         assert.ok(skipped.some((s) => s.reason.includes('20')));
+    });
+});
+
+describe('applyEnrichmentFilters', () => {
+    const articles = [
+        { dedupeKey: 'a', eventTypes: ['earnings'], sentimentScore: 0.5 },
+        { dedupeKey: 'b', eventTypes: ['macro'], sentimentScore: -0.4 },
+        { dedupeKey: 'c', eventTypes: ['earnings', 'guidance'], sentimentScore: -0.2 },
+        { dedupeKey: 'd', eventTypes: [], sentimentScore: undefined },
+    ];
+
+    it('is a no-op when filters are empty', () => {
+        assert.equal(applyEnrichmentFilters(articles, {}).length, 4);
+        assert.equal(applyEnrichmentFilters(articles, { filterEventTypes: [] }).length, 4);
+    });
+
+    it('keeps articles matching any selected event type', () => {
+        const kept = applyEnrichmentFilters(articles, { filterEventTypes: ['earnings'] });
+        assert.deepEqual(kept.map((a) => a.dedupeKey), ['a', 'c']);
+    });
+
+    it('applies inclusive sentiment bounds and treats missing score as 0', () => {
+        const kept = applyEnrichmentFilters(articles, { maxSentimentScore: 0 });
+        assert.deepEqual(kept.map((a) => a.dedupeKey), ['b', 'c', 'd']);
+        const positive = applyEnrichmentFilters(articles, { minSentimentScore: 0 });
+        assert.deepEqual(positive.map((a) => a.dedupeKey), ['a', 'd']);
+    });
+
+    it('combines event and sentiment filters', () => {
+        const kept = applyEnrichmentFilters(articles, {
+            filterEventTypes: ['earnings'],
+            maxSentimentScore: -0.1,
+        });
+        assert.deepEqual(kept.map((a) => a.dedupeKey), ['c']);
+    });
+});
+
+describe('normalizeFilterEventTypes', () => {
+    it('keeps known ids and reports unknown ones', () => {
+        const { types, unknown } = normalizeFilterEventTypes(
+            ['earnings', 'not_a_type', 'earnings', 'macro'],
+            EVENT_TYPE_IDS,
+        );
+        assert.deepEqual(types, ['earnings', 'macro']);
+        assert.deepEqual(unknown, ['not_a_type']);
+        assert.equal(enrichmentFiltersActive({ filterEventTypes: types }), true);
+        assert.equal(enrichmentFiltersActive({}), false);
     });
 });

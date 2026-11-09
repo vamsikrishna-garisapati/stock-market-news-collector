@@ -6,7 +6,9 @@ Instructions for AI agents (MCP, Apify API, x402) that discover, call, or chain 
 
 | Field | Value |
 | --- | --- |
+| **Username** | `vamsi-krishna` |
 | **Name** | `stock-market-news-collector` |
+| **Full Actor ID** | `vamsi-krishna/stock-market-news-collector` |
 | **Title** | Stock Market News Scraper \| Tickers, Google News, India, Crypto |
 | **Type** | RSS/Atom news aggregator with Google News search (no browser, no login) |
 | **Runtime** | Node.js, typically completes in seconds (longer with `includeFullText`) |
@@ -87,6 +89,18 @@ Each ticker adds its Yahoo Finance headline feed (max 20 tickers; disable with `
 }
 ```
 
+Negative earnings-only alert:
+
+```json
+{
+  "feedPreset": "us_markets",
+  "tickers": ["AAPL"],
+  "onlyNewArticles": true,
+  "filterEventTypes": ["earnings"],
+  "maxSentimentScore": -0.1
+}
+```
+
 ### Any company, topic, or country (Google News)
 
 ```json
@@ -137,7 +151,7 @@ Each ticker adds its Yahoo Finance headline feed (max 20 tickers; disable with `
 ## Apify API
 
 ```javascript
-const run = await client.actor('USERNAME/stock-market-news-collector').call({
+const run = await client.actor('vamsi-krishna/stock-market-news-collector').call({
   tickers: ['AAPL'],
   onlyNewArticles: true,
 });

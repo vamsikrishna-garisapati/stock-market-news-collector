@@ -146,6 +146,54 @@
       "description": "Add companyDetails (name, exchange, sector), eventTypes (earnings, M&A, analyst ratings, ...), sentimentScore, and sentimentLabel to each article.",
       "default": true
     },
+    "filterEventTypes": {
+      "title": "Filter by event type",
+      "type": "array",
+      "description": "Only keep articles tagged with at least one of these event types (OR). Leave empty to disable. Requires enrichment (auto-enabled when set).",
+      "editor": "select",
+      "default": [],
+      "items": {
+        "type": "string",
+        "enum": [
+          "earnings",
+          "guidance",
+          "mergers_acquisitions",
+          "analyst_rating",
+          "ipo",
+          "dividends_buybacks",
+          "legal_regulatory",
+          "executive_change",
+          "layoffs_restructuring",
+          "macro"
+        ],
+        "enumTitles": [
+          "Earnings",
+          "Guidance",
+          "Mergers & acquisitions",
+          "Analyst rating",
+          "IPO",
+          "Dividends / buybacks",
+          "Legal / regulatory",
+          "Executive change",
+          "Layoffs / restructuring",
+          "Macro"
+        ]
+      }
+    },
+    "minSentimentScore": {
+      "title": "Min sentiment score",
+      "type": "number",
+      "description": "Exclude articles with sentimentScore below this value (-1 to 1). Leave unset to disable. Requires enrichment (auto-enabled when set).",
+      "minimum": -1,
+      "maximum": 1
+    },
+    "maxSentimentScore": {
+      "title": "Max sentiment score",
+      "type": "number",
+      "description": "Exclude articles with sentimentScore above this value (-1 to 1). Leave unset to disable. Example: -0.1 for mostly negative headlines. Requires enrichment (auto-enabled when set).",
+      "minimum": -1,
+      "maximum": 1
+    },
     "includeFullText": {
       "title": "Include full article text",
       "type": "boolean",
