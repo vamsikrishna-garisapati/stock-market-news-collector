@@ -1,0 +1,47 @@
+{
+  "_comment": "Public task vamsi-krishna/apple-tesla-nvidia-stock-news (id dujCNVIdtDjb9Rr6h). Sync via apify api PUT actor-tasks/{id}. description <=400; seoTitle <=60; seoDescription <=160; FAQ Q<=120 A<=250. seoKeywords are local-only.",
+  "name": "apple-tesla-nvidia-stock-news",
+  "title": "AAPL TSLA NVDA stock news API | Apple, Tesla, Nvidia",
+  "description": "Stock news API for AAPL, TSLA, and NVDA: filter US finance RSS (MarketWatch, CNBC, Bloomberg, Yahoo Finance) for Apple, Tesla, and Nvidia. Returns JSON with links, tickers, sentiment, and event tags. No login—schedule Only new articles for watchlist alerts.",
+  "input": {
+    "feedPreset": "us_markets",
+    "companies": ["Apple", "Tesla", "Nvidia"],
+    "hoursBack": 24,
+    "maxItems": 50,
+    "deduplicate": true,
+    "enrichArticles": true,
+    "onlyNewArticles": false
+  },
+  "seoTitle": "AAPL TSLA NVDA stock news API | Watchlist",
+  "seoDescription": "Stock news API for Apple, Tesla & Nvidia (AAPL, TSLA, NVDA) as JSON with tickers and sentiment. One-click watchlist—no login.",
+  "faq": [
+    {
+      "question": "Is this a stock news API for AAPL, TSLA, and NVDA?",
+      "answer": "Yes. It filters US market headlines for Apple, Tesla, and Nvidia and returns JSON you can download or call via the Apify API—useful as a lightweight stock news API."
+    },
+    {
+      "question": "Which publishers feed this Apple Tesla Nvidia news task?",
+      "answer": "MarketWatch, CNBC, Bloomberg, and Yahoo Finance RSS via us_markets, then stories matching those company names (tickers AAPL, TSLA, NVDA when detected)."
+    },
+    {
+      "question": "Do I need to change any input before starting?",
+      "answer": "No. Click Start for the last 24 hours of Apple, Tesla, and Nvidia news (up to 50 JSON items)."
+    },
+    {
+      "question": "Can I add tickers or alert only on new articles?",
+      "answer": "Yes. Duplicate the task, edit companies or tickers, turn on Only new articles, and schedule Slack, Zapier, or webhook alerts."
+    }
+  ],
+  "seoKeywords": [
+    "aapl news api",
+    "tsla news api",
+    "nvda news api",
+    "stock news api",
+    "apple stock news api",
+    "tesla stock news api",
+    "nvidia stock news api",
+    "yahoo finance news api",
+    "watchlist stock news json",
+    "mega cap stock news scraper"
+  ]
+}

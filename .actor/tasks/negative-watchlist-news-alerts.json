@@ -1,0 +1,57 @@
+{
+  "_comment": "Public task vamsi-krishna/negative-watchlist-news-alerts (id 69JFK2ixrjyNViAyB). Sync via apify api PUT actor-tasks/{id}. description <=400; seoTitle <=60; seoDescription <=160; FAQ Q<=120 A<=250. seoKeywords are local-only.",
+  "name": "negative-watchlist-news-alerts",
+  "title": "Stock sentiment API alerts | Negative AAPL TSLA NVDA news",
+  "description": "Stock sentiment API alerts for AAPL, TSLA, and NVDA: US market headlines filtered to negative sentiment (max score -0.1) with Only new articles on. Returns JSON for watchlist alerts\u2014no login. Schedule as-is for Slack or Zapier.",
+  "input": {
+    "feedPreset": "us_markets",
+    "tickers": [
+      "AAPL",
+      "TSLA",
+      "NVDA"
+    ],
+    "onlyNewArticles": true,
+    "maxSentimentScore": -0.1,
+    "hoursBack": 24,
+    "maxItems": 30,
+    "deduplicate": true,
+    "enrichArticles": true
+  },
+  "seoTitle": "Stock sentiment API alerts | Negative watchlist",
+  "seoDescription": "Stock sentiment API: alert on negative AAPL, TSLA, NVDA headlines as JSON. Only-new scheduling ready\u2014no login.",
+  "inputSchemaFields": [
+    "tickers",
+    "maxSentimentScore",
+    "onlyNewArticles",
+    "maxItems",
+    "hoursBack"
+  ],
+  "faq": [
+    {
+      "question": "Is this a stock sentiment API for alerts?",
+      "answer": "Yes. It returns watchlist headlines as JSON with sentiment scores and keeps only negative items (sentiment at or below -0.1) for AAPL, TSLA, and NVDA."
+    },
+    {
+      "question": "Why is Only new articles already on?",
+      "answer": "So scheduled runs skip headlines you already saw\u2014ideal for Slack, Zapier, or webhook alerts without duplicate noise."
+    },
+    {
+      "question": "Do I need to change any input before starting?",
+      "answer": "No. Click Start for negative mega-cap news (up to 30 items, last 24 hours). Edit tickers after you duplicate the task."
+    },
+    {
+      "question": "Can I change the sentiment threshold or tickers?",
+      "answer": "Yes. Duplicate the task, edit tickers or maxSentimentScore, then schedule it. Enrichment must stay on for sentiment filtering."
+    }
+  ],
+  "seoKeywords": [
+    "stock sentiment api",
+    "negative stock news alerts",
+    "watchlist news sentiment",
+    "aapl tsla nvda alerts",
+    "stock sentiment api free",
+    "negative headline filter api",
+    "trading alert news json",
+    "sentiment watchlist scraper"
+  ]
+}

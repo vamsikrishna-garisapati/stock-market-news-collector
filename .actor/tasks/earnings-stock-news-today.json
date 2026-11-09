@@ -1,0 +1,54 @@
+{
+  "_comment": "Public task vamsi-krishna/earnings-stock-news-today (id L1YAQOyJc2Nb6dIVF). Sync via apify api PUT actor-tasks/{id}. description <=400; seoTitle <=60; seoDescription <=160; FAQ Q<=120 A<=250. seoKeywords are local-only.",
+  "name": "earnings-stock-news-today",
+  "title": "Earnings stock news API | Results and guidance headlines",
+  "description": "Earnings stock news API as JSON from CNBC Earnings and related US finance feeds, filtered to earnings event tags. Get results headlines, links, tickers, and sentiment\u2014no login. Click Start, or schedule Only new articles for alerts.",
+  "input": {
+    "feedPreset": "earnings",
+    "filterEventTypes": [
+      "earnings"
+    ],
+    "hoursBack": 48,
+    "maxItems": 50,
+    "deduplicate": true,
+    "enrichArticles": true,
+    "onlyNewArticles": false
+  },
+  "seoTitle": "Earnings stock news API | Results headlines",
+  "seoDescription": "Earnings stock news API: results and guidance headlines as JSON with tickers and sentiment. One-click Apify task\u2014no login.",
+  "inputSchemaFields": [
+    "feedPreset",
+    "filterEventTypes",
+    "maxItems",
+    "hoursBack",
+    "enrichArticles"
+  ],
+  "faq": [
+    {
+      "question": "Is this an earnings stock news API?",
+      "answer": "Yes. It collects earnings-related headlines as structured JSON via the earnings preset and an earnings event-type filter."
+    },
+    {
+      "question": "How does the earnings filter work?",
+      "answer": "Stories are tagged for events like earnings; this task keeps items with the earnings event type so results noise is lower than a full market feed."
+    },
+    {
+      "question": "Do I need to change any input before starting?",
+      "answer": "No. Click Start for the last 48 hours of earnings headlines (up to 50 items). Duplicate to add tickers or Only new articles."
+    },
+    {
+      "question": "Can I alert only on new earnings headlines?",
+      "answer": "Yes. Duplicate this task, turn on Only new articles, and schedule it for Slack, Zapier, or webhook alerts."
+    }
+  ],
+  "seoKeywords": [
+    "earnings news api",
+    "earnings stock news api",
+    "stock earnings headlines json",
+    "cnbc earnings rss",
+    "results news api",
+    "earnings reports news feed",
+    "quarterly earnings news scraper",
+    "guidance earnings headlines"
+  ]
+}

@@ -1,0 +1,51 @@
+{
+  "_comment": "Public task vamsi-krishna/crypto-market-news-today (id EUJ4fWEvKIHg6GGGp). Sync via apify api PUT actor-tasks/{id}. description <=400; seoTitle <=60; seoDescription <=160; FAQ Q<=120 A<=250. seoKeywords are local-only.",
+  "name": "crypto-market-news-today",
+  "title": "Crypto news scraper API | CoinDesk, Cointelegraph & more",
+  "description": "Crypto news scraper API as JSON from CoinDesk, Cointelegraph, Decrypt, and The Block. Get headlines, links, tickers, sentiment, and event tags\u2014no login. Click Start, or schedule Only new articles for alerts.",
+  "input": {
+    "feedPreset": "crypto",
+    "hoursBack": 48,
+    "maxItems": 50,
+    "deduplicate": true,
+    "enrichArticles": true,
+    "onlyNewArticles": false
+  },
+  "seoTitle": "Crypto news scraper API | CoinDesk and more",
+  "seoDescription": "Crypto news scraper API: CoinDesk, Cointelegraph, Decrypt & The Block as JSON with tickers and sentiment. One-click\u2014no login.",
+  "inputSchemaFields": [
+    "feedPreset",
+    "maxItems",
+    "hoursBack",
+    "deduplicate",
+    "enrichArticles"
+  ],
+  "faq": [
+    {
+      "question": "Is this a crypto news scraper API?",
+      "answer": "Yes. It returns crypto market headlines as structured JSON you can download or call via the Apify API\u2014no custom RSS scraper to maintain."
+    },
+    {
+      "question": "Which crypto publishers are included?",
+      "answer": "CoinDesk, Cointelegraph, Decrypt, and The Block via the crypto feed preset (up to 50 items from the last 48 hours)."
+    },
+    {
+      "question": "Do I need to change any input before starting?",
+      "answer": "No. Click Start for ready crypto news JSON. Duplicate and enable Only new articles to schedule Slack or webhook alerts."
+    },
+    {
+      "question": "Does output include tickers and sentiment?",
+      "answer": "Yes. Enrichment adds detected tickers, sentiment labels, and event tags when they can be inferred from the headline and summary."
+    }
+  ],
+  "seoKeywords": [
+    "crypto news scraper",
+    "crypto news api",
+    "coindesk rss api",
+    "cointelegraph news json",
+    "bitcoin news api",
+    "crypto market news scraper",
+    "decrypt news feed",
+    "the block crypto headlines"
+  ]
+}

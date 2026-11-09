@@ -1,8 +1,8 @@
 {
-  "_comment": "Version-controlled source of truth for the Apify public task vamsi-krishna/india-stock-market-news (id IDrofqSydCgmolRhx). Create/update via apify api POST/PUT actor-tasks (actId vamsi-krishna/stock-market-news-collector); publish with PUT isPublic:true + publicConfig (datasetView overview). Or: apify task publish vamsi-krishna/india-stock-market-news after publicConfig is set. seoKeywords are local-only (not an API field); use seoTitle/seoDescription on publish. description must be <=400 chars.",
+  "_comment": "Public task vamsi-krishna/india-stock-market-news (id IDrofqSydCgmolRhx). Sync via apify api PUT actor-tasks/{id}. description <=400; seoTitle <=60; seoDescription <=160; FAQ Q<=120 A<=250. seoKeywords are local-only.",
   "name": "india-stock-market-news",
-  "title": "Indian Stock Market News | NSE, BSE, Nifty 50, Sensex & Mint",
-  "description": "Get the latest Indian stock market news from Economic Times, Mint, Business Standard, Hindu Business Line, Moneycontrol, and NDTV Profit as structured JSON. Includes headlines, links, NSE/BSE tickers, sentiment, and event tags. No login required. Schedule with Only new articles for alerts.",
+  "title": "Indian stock market news API | NSE, BSE, Nifty & Sensex",
+  "description": "Indian stock market news API as JSON from Economic Times, Mint, Business Standard, Hindu Business Line, Moneycontrol, and NDTV Profit. Get Nifty/Sensex headlines, NSE/BSE tickers, sentiment, and event tags—no login. Schedule Only new articles for alerts.",
   "input": {
     "feedPreset": "india_markets",
     "hoursBack": 24,
@@ -11,16 +11,36 @@
     "enrichArticles": true,
     "onlyNewArticles": false
   },
+  "seoTitle": "Indian stock market news API | NSE & Nifty",
+  "seoDescription": "Free-to-try India stock news API: ET, Mint, Business Standard & Moneycontrol as JSON with NSE/BSE tickers and sentiment. No login.",
+  "faq": [
+    {
+      "question": "Is this an Indian stock market news API?",
+      "answer": "Yes. It returns India equity headlines as structured JSON (API/dataset download) with links, NSE/BSE tickers, sentiment, and event tags—no custom scraper to maintain."
+    },
+    {
+      "question": "Which Nifty and Sensex news sources are included?",
+      "answer": "Economic Times, Mint, Business Standard, Hindu Business Line, Moneycontrol, and NDTV Profit via the india_markets preset (up to 100 items, last 24 hours)."
+    },
+    {
+      "question": "Do I need to change any input before starting?",
+      "answer": "No. Click Start for the latest India stock market news API output as JSON. Duplicate and enable Only new articles to schedule alerts."
+    },
+    {
+      "question": "Does output include NSE and BSE tickers?",
+      "answer": "Yes. Enrichment detects symbols and names (for example RELIANCE.NS) and attaches ticker and company details when available."
+    }
+  ],
   "seoKeywords": [
-    "india stock news",
-    "nifty 50 news",
-    "sensex news scraper",
+    "indian stock market news api",
+    "stock market news api india",
+    "stock news api india",
+    "india stock news api",
     "nse bse news api",
-    "economic times rss",
-    "livemint markets api",
-    "business standard markets",
-    "indian stock market news scraper",
-    "reliance infosys tcs news",
-    "india financial news api"
+    "nifty sensex news api",
+    "financial news api india",
+    "economic times rss json",
+    "share market news api",
+    "india equity news scraper"
   ]
 }

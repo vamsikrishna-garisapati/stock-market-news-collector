@@ -1,0 +1,56 @@
+{
+  "_comment": "Public task vamsi-krishna/google-news-company-search (id Au97cdpSfKaHIpP4p). Sync via apify api PUT actor-tasks/{id}. description <=400; seoTitle <=60; seoDescription <=160; FAQ Q<=120 A<=250. seoKeywords are local-only.",
+  "name": "google-news-company-search",
+  "title": "Google News stock search API | Any company or ticker",
+  "description": "Google News stock search API for any company or topic. Prefills Nvidia OR NVDA; change the query for any ticker or firm. Returns JSON headlines and links\u2014no login. Duplicate to set country/language or schedule Only new articles.",
+  "input": {
+    "feedPreset": "none",
+    "searchQueries": [
+      "Nvidia OR NVDA"
+    ],
+    "searchLanguage": "en",
+    "searchCountry": "US",
+    "hoursBack": 24,
+    "maxItems": 50,
+    "deduplicate": true,
+    "enrichArticles": true,
+    "onlyNewArticles": false
+  },
+  "seoTitle": "Google News stock search API | Any company",
+  "seoDescription": "Google News stock search API: query any company or ticker and get JSON headlines. Prefills Nvidia OR NVDA\u2014no login.",
+  "inputSchemaFields": [
+    "searchQueries",
+    "searchCountry",
+    "searchLanguage",
+    "maxItems",
+    "hoursBack"
+  ],
+  "faq": [
+    {
+      "question": "Is this a Google News stock search API?",
+      "answer": "Yes. It runs Google News RSS search queries and returns structured JSON (headline, link, source, tickers when detected) via the Apify dataset or API."
+    },
+    {
+      "question": "What query is prefilled?",
+      "answer": "Nvidia OR NVDA for the US/English Google News index. Duplicate the task and edit searchQueries for any company, ticker, or topic."
+    },
+    {
+      "question": "Do I need to change any input before starting?",
+      "answer": "No for a Nvidia demo. For another company, edit searchQueries (and optionally searchCountry / searchLanguage) then Start."
+    },
+    {
+      "question": "Can I schedule only new Google News hits?",
+      "answer": "Yes. Duplicate the task, turn on Only new articles, and schedule Slack, Zapier, or webhook alerts."
+    }
+  ],
+  "seoKeywords": [
+    "google news stock search api",
+    "google news ticker api",
+    "company news api google",
+    "stock news search json",
+    "yahoo finance news api alternative",
+    "nvidia news api",
+    "google news rss stock",
+    "any company news scraper"
+  ]
+}
