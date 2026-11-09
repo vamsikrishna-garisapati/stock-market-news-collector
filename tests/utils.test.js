@@ -349,6 +349,7 @@ describe('projectOutputFields', () => {
             sentimentLabel: 'positive',
             publishedDate: '2026-11-09T00:00:00.000Z',
             source: 'CNBC',
+            fetchedAt: '2026-11-09T01:00:00.000Z',
             dedupeKey: 'https://example.com/a',
         },
     ];
@@ -358,10 +359,8 @@ describe('projectOutputFields', () => {
         assert.equal(projectOutputFields(articles, null), articles);
     });
 
-    it('keeps only requested fields and ignores unknowns', () => {
+    it('keeps requested fields plus dataset-required fields', () => {
         const projected = projectOutputFields(articles, [
-            'headline',
-            'articleLink',
             'tickers',
             'sentimentLabel',
             'notAField',
@@ -369,6 +368,8 @@ describe('projectOutputFields', () => {
         assert.deepEqual(projected, [{
             headline: 'AAPL earnings beat',
             articleLink: 'https://example.com/a',
+            source: 'CNBC',
+            fetchedAt: '2026-11-09T01:00:00.000Z',
             tickers: ['AAPL'],
             sentimentLabel: 'positive',
         }]);

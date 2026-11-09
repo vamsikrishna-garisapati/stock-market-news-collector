@@ -129,9 +129,11 @@ Lean Zapier / Slack payload (fewer fields):
   "feedPreset": "us_markets",
   "maxItems": 30,
   "hoursBack": 24,
-  "outputFields": ["headline", "articleLink", "tickers", "sentimentLabel", "publishedDate"]
+  "outputFields": ["tickers", "sentimentLabel", "publishedDate"]
 }
 ```
+
+(`headline`, `articleLink`, `source`, and `fetchedAt` are always included so the dataset schema stays valid.)
 
 30-day research backfill:
 
@@ -230,7 +232,7 @@ Search queries and ticker feeds are added on top of any preset.
 | `excludeKeywords` | `[]` | Exclude matching articles |
 | `hoursBack` | `24` | Only articles from the last N hours (max 720 = 30 days; `0` = no date filter) |
 | `maxItems` | `50` | Max articles returned (up to 500) |
-| `outputFields` | `[]` | Restrict dataset fields (e.g. for Zapier); empty = all fields |
+| `outputFields` | `[]` | Restrict dataset fields (e.g. for Zapier); empty = all. Always keeps `headline`, `articleLink`, `source`, `fetchedAt` |
 | `onlyNewArticles` | `false` | Skip articles returned by earlier runs with the same setup |
 | `stateKey` | auto | Optional name for the `onlyNewArticles` history. Stored encrypted. |
 | `enrichArticles` | `true` | Add company details, event types, and sentiment |

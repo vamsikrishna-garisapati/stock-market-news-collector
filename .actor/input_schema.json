@@ -123,10 +123,10 @@
     "outputFields": {
       "title": "Output fields",
       "type": "array",
-      "description": "Only include these article fields in the dataset. Leave empty to return all fields. Example: [\"headline\", \"articleLink\", \"tickers\", \"sentimentLabel\", \"publishedDate\"].",
+      "description": "Only include these article fields in the dataset. Leave empty to return all fields. Always keeps headline, articleLink, source, and fetchedAt (dataset schema required). Example: [\"tickers\", \"sentimentLabel\", \"publishedDate\"].",
       "editor": "stringList",
       "default": [],
-      "example": ["headline", "articleLink", "tickers", "sentimentLabel", "publishedDate"],
+      "example": ["tickers", "sentimentLabel", "publishedDate"],
       "items": { "type": "string" }
     },
     "maxItemsPerFeed": {

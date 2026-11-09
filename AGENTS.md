@@ -107,9 +107,11 @@ Lean Zapier / Slack payload:
 {
   "feedPreset": "us_markets",
   "maxItems": 30,
-  "outputFields": ["headline", "articleLink", "tickers", "sentimentLabel", "publishedDate"]
+  "outputFields": ["tickers", "sentimentLabel", "publishedDate"]
 }
 ```
+
+(`headline`, `articleLink`, `source`, and `fetchedAt` are always kept for dataset schema validity.)
 
 30-day backfill:
 

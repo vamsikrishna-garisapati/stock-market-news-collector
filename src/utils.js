@@ -249,10 +249,16 @@ export function matchesCompanyFilter(searchable, companies) {
     return companies.some((company) => lower.includes(String(company).toLowerCase()));
 }
 
+/** Fields required by the Actor dataset schema — always kept when projecting. */
+export const DATASET_REQUIRED_FIELDS = Object.freeze(['headline', 'articleLink', 'source', 'fetchedAt']);
+
 /** Restrict dataset rows to the requested fields. Empty/omitted fields = identity. */
 export function projectOutputFields(articles, fields) {
     if (!Array.isArray(fields) || !fields.length) return articles;
-    const keys = [...new Set(fields.map(String).filter(Boolean))];
+    const keys = [...new Set([
+        ...DATASET_REQUIRED_FIELDS,
+        ...fields.map(String).filter(Boolean),
+    ])];
     if (!keys.length) return articles;
 
     return articles.map((article) => {
