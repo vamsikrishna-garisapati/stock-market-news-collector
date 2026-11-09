@@ -1,12 +1,12 @@
 {
-  "_comment": "Version-controlled source of truth for the Apify public task. Create or update this task at https://console.apify.com/actors/tasks → New Task (from vamsi-krishna/stock-market-news-collector). Mark visibility as Public.",
+  "_comment": "Version-controlled source of truth for the Apify public task vamsi-krishna/india-stock-market-news (id IDrofqSydCgmolRhx). Create/update via apify api POST/PUT actor-tasks (actId vamsi-krishna/stock-market-news-collector); publish with PUT isPublic:true + publicConfig (datasetView overview). Or: apify task publish vamsi-krishna/india-stock-market-news after publicConfig is set. seoKeywords are local-only (not an API field); use seoTitle/seoDescription on publish. description must be <=400 chars.",
   "name": "india-stock-market-news",
   "title": "Indian Stock Market News | NSE, BSE, Nifty 50, Sensex & Mint",
-  "description": "Get the latest stock market news from India's top financial publishers — Economic Times, Mint, and Business Standard — in one structured JSON dataset.\n\nIncludes headlines, publication date, article links, detected company tickers (Reliance, TCS, Infosys, HDFC Bank, Nifty 50 stocks, and more), sentiment scores, and event tags (earnings, analyst ratings, M&A, macro). No login required.\n\n**How to use:**\n1. Click **Start** — results appear in the Output tab within seconds.\n2. Schedule every 15–60 minutes with **Only new articles** enabled to receive only fresh headlines.\n3. Connect to Slack, Discord, or Telegram via Apify webhooks or Make/Zapier integrations.\n\n**Covered publishers:** Economic Times Markets, Economic Times Stocks, Livemint Markets, Business Standard Markets.\n\n**Perfect for:** Indian retail investors, algorithmic traders monitoring Nifty 50, FinTech apps needing NSE/BSE news APIs, and AI/RAG pipelines focused on Indian equities.",
+  "description": "Get the latest Indian stock market news from Economic Times, Mint, Business Standard, Hindu Business Line, Moneycontrol, and NDTV Profit as structured JSON. Includes headlines, links, NSE/BSE tickers, sentiment, and event tags. No login required. Schedule with Only new articles for alerts.",
   "input": {
     "feedPreset": "india_markets",
     "hoursBack": 24,
-    "maxItems": 50,
+    "maxItems": 100,
     "deduplicate": true,
     "enrichArticles": true,
     "onlyNewArticles": false
@@ -24,4 +24,3 @@
     "india financial news api"
   ]
 }
-

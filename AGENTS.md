@@ -102,7 +102,7 @@ Each ticker adds its Yahoo Finance headline feed (max 20 tickers; disable with `
 ### India or crypto
 
 ```json
-{ "feedPreset": "india_markets", "maxItems": 50 }
+{ "feedPreset": "india_markets", "maxItems": 100 }
 ```
 
 ```json

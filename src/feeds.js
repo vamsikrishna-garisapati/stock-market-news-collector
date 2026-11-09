@@ -1,6 +1,7 @@
 import Parser from 'rss-parser';
 
-export const USER_AGENT = 'Mozilla/5.0 (compatible; ApifyStockMarketNewsActor/1.0; +https://apify.com/)';
+// Browser-like UA: some publishers (e.g. Business Standard) return 403 for bot UAs.
+export const USER_AGENT = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
 
 export const FEEDS = {
     marketWatchTopStories: { name: 'MarketWatch Top Stories', url: 'https://feeds.content.dowjones.io/public/rss/mw_topstories' },
@@ -13,7 +14,11 @@ export const FEEDS = {
     economicTimesStocks: { name: 'Economic Times Stocks', url: 'https://economictimes.indiatimes.com/markets/stocks/rssfeeds/2146842.cms' },
     economicTimesSensex: { name: 'Economic Times Sensex/Nifty', url: 'https://economictimes.indiatimes.com/markets/stocks/recos/rssfeeds/2146842.cms' },
     livemintMarkets: { name: 'Mint Markets', url: 'https://www.livemint.com/rss/markets' },
+    livemintCompanies: { name: 'Mint Companies', url: 'https://www.livemint.com/rss/companies' },
     businessStandard: { name: 'Business Standard Markets', url: 'https://www.business-standard.com/rss/markets-106.rss' },
+    hinduBusinessLineMarkets: { name: 'Hindu Business Line Markets', url: 'https://www.thehindubusinessline.com/markets/feeder/default.rss' },
+    moneycontrolBusiness: { name: 'Moneycontrol Business', url: 'https://www.moneycontrol.com/rss/business.xml' },
+    ndtvProfit: { name: 'NDTV Profit', url: 'https://feeds.feedburner.com/ndtvprofit-latest' },
     coinDesk: { name: 'CoinDesk', url: 'https://www.coindesk.com/arc/outboundfeeds/rss/' },
     cointelegraph: { name: 'Cointelegraph', url: 'https://cointelegraph.com/rss' },
     decrypt: { name: 'Decrypt', url: 'https://decrypt.co/feed' },
@@ -44,8 +49,13 @@ export const FEED_PRESETS = {
         feeds: [
             FEEDS.economicTimesMarkets,
             FEEDS.economicTimesStocks,
+            FEEDS.economicTimesSensex,
             FEEDS.livemintMarkets,
+            FEEDS.livemintCompanies,
             FEEDS.businessStandard,
+            FEEDS.hinduBusinessLineMarkets,
+            FEEDS.moneycontrolBusiness,
+            FEEDS.ndtvProfit,
         ],
         useDefaultKeywords: false,
     },

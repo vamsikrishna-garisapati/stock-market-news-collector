@@ -125,7 +125,7 @@ Google News operators work: `"Apple OR AAPL"`, `"lithium site:reuters.com"`, `"n
 ### India markets or crypto
 
 ```json
-{ "feedPreset": "india_markets", "maxItems": 50 }
+{ "feedPreset": "india_markets", "maxItems": 100 }
 ```
 
 ```json
@@ -176,7 +176,7 @@ console.log(items);
 | `us_markets` (default) | MarketWatch Top Stories, MarketWatch Breaking News, CNBC Investing, Bloomberg Markets | US equities and market headlines |
 | `global_markets` | Bloomberg Markets, CNBC International, MarketWatch Top Stories | Broader coverage (English-language sources) |
 | `earnings` | CNBC Earnings, CNBC Investing, Bloomberg Markets | Earnings and corporate news |
-| `india_markets` | Economic Times Markets, Economic Times Stocks, Mint Markets | Indian equities, Nifty and Sensex |
+| `india_markets` | Economic Times, Mint, Business Standard, Hindu Business Line, Moneycontrol, NDTV Profit | Indian equities, Nifty and Sensex |
 | `crypto` | CoinDesk, Cointelegraph, Decrypt, The Block | Crypto markets |
 | `none` | Nothing | Use only search queries and ticker feeds |
 | `custom` | Your own RSS URLs | Any region or publisher |
