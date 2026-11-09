@@ -249,6 +249,21 @@ export function matchesCompanyFilter(searchable, companies) {
     return companies.some((company) => lower.includes(String(company).toLowerCase()));
 }
 
+/** Restrict dataset rows to the requested fields. Empty/omitted fields = identity. */
+export function projectOutputFields(articles, fields) {
+    if (!Array.isArray(fields) || !fields.length) return articles;
+    const keys = [...new Set(fields.map(String).filter(Boolean))];
+    if (!keys.length) return articles;
+
+    return articles.map((article) => {
+        const row = {};
+        for (const key of keys) {
+            if (Object.prototype.hasOwnProperty.call(article, key)) row[key] = article[key];
+        }
+        return row;
+    });
+}
+
 /**
  * Keep articles that match enrichment filters. Empty/omitted filters are no-ops.
  * Missing sentimentScore is treated as 0 when a sentiment bound is set.

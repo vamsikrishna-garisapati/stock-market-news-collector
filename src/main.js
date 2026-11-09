@@ -19,6 +19,7 @@ import {
     matchesCompanyFilter,
     matchesTickerFilter,
     normalizeFilterEventTypes,
+    projectOutputFields,
     resolveIncludeKeywords,
     resolveRunStatus,
     sanitizeHttpUrl,
@@ -276,7 +277,7 @@ await Actor.main(async () => {
         failOnAllFeedsFailed = input.failOnAllFeedsFailed === true;
 
         const maxItems = Math.min(Math.max(Number(input.maxItems ?? 50), 1), 500);
-        const hoursBack = Math.max(Number(input.hoursBack ?? 24), 0);
+        const hoursBack = Math.min(Math.max(Number(input.hoursBack ?? 24), 0), 720);
         const excludeKeywords = Array.isArray(input.excludeKeywords) ? input.excludeKeywords : [];
         const tickers = Array.isArray(input.tickers) ? input.tickers : [];
         const companies = Array.isArray(input.companies) ? input.companies : [];
@@ -455,8 +456,12 @@ await Actor.main(async () => {
             log.info('Full text results', fullTextStats);
         }
 
-        if (output.length) {
-            await Actor.pushData(output);
+        const toPush = projectOutputFields(output, input.outputFields);
+        if (Array.isArray(input.outputFields) && input.outputFields.length) {
+            log.info(`Projecting dataset to ${[...new Set(input.outputFields.map(String).filter(Boolean))].length} field(s).`);
+        }
+        if (toPush.length) {
+            await Actor.pushData(toPush);
         }
 
         if (seenState && output.length) {

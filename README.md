@@ -122,6 +122,23 @@ Negative earnings-only alert:
 }
 ```
 
+Lean Zapier / Slack payload (fewer fields):
+
+```json
+{
+  "feedPreset": "us_markets",
+  "maxItems": 30,
+  "hoursBack": 24,
+  "outputFields": ["headline", "articleLink", "tickers", "sentimentLabel", "publishedDate"]
+}
+```
+
+30-day research backfill:
+
+```json
+{ "feedPreset": "us_markets", "maxItems": 100, "hoursBack": 720 }
+```
+
 ### Google News search, any company or country
 
 ```json
@@ -211,8 +228,9 @@ Search queries and ticker feeds are added on top of any preset.
 | `tickerMatchMode` | `any` | `any` or `all` tickers must match |
 | `includeKeywords` | Finance terms (see below) | Match headline + summary; set `[]` to disable |
 | `excludeKeywords` | `[]` | Exclude matching articles |
-| `hoursBack` | `24` | Only articles from the last N hours (`0` = no date filter) |
+| `hoursBack` | `24` | Only articles from the last N hours (max 720 = 30 days; `0` = no date filter) |
 | `maxItems` | `50` | Max articles returned (up to 500) |
+| `outputFields` | `[]` | Restrict dataset fields (e.g. for Zapier); empty = all fields |
 | `onlyNewArticles` | `false` | Skip articles returned by earlier runs with the same setup |
 | `stateKey` | auto | Optional name for the `onlyNewArticles` history. Stored encrypted. |
 | `enrichArticles` | `true` | Add company details, event types, and sentiment |

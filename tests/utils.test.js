@@ -17,6 +17,7 @@ import {
     matchesKeyword,
     matchesTickerFilter,
     normalizeFilterEventTypes,
+    projectOutputFields,
     resolveIncludeKeywords,
     resolveRunStatus,
     stripPublisherSuffix,
@@ -336,5 +337,40 @@ describe('normalizeFilterEventTypes', () => {
         assert.deepEqual(unknown, ['not_a_type']);
         assert.equal(enrichmentFiltersActive({ filterEventTypes: types }), true);
         assert.equal(enrichmentFiltersActive({}), false);
+    });
+});
+
+describe('projectOutputFields', () => {
+    const articles = [
+        {
+            headline: 'AAPL earnings beat',
+            articleLink: 'https://example.com/a',
+            tickers: ['AAPL'],
+            sentimentLabel: 'positive',
+            publishedDate: '2026-11-09T00:00:00.000Z',
+            source: 'CNBC',
+            dedupeKey: 'https://example.com/a',
+        },
+    ];
+
+    it('returns the same articles when fields are empty', () => {
+        assert.equal(projectOutputFields(articles, []), articles);
+        assert.equal(projectOutputFields(articles, null), articles);
+    });
+
+    it('keeps only requested fields and ignores unknowns', () => {
+        const projected = projectOutputFields(articles, [
+            'headline',
+            'articleLink',
+            'tickers',
+            'sentimentLabel',
+            'notAField',
+        ]);
+        assert.deepEqual(projected, [{
+            headline: 'AAPL earnings beat',
+            articleLink: 'https://example.com/a',
+            tickers: ['AAPL'],
+            sentimentLabel: 'positive',
+        }]);
     });
 });

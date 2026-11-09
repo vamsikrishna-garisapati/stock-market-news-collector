@@ -104,10 +104,10 @@
     "hoursBack": {
       "title": "Hours back",
       "type": "integer",
-      "description": "Only include articles published within this many hours. Use 0 to disable the date filter.",
+      "description": "Only include articles published within this many hours (max 720 = 30 days). Use 0 to disable the date filter.",
       "default": 24,
       "minimum": 0,
-      "maximum": 168
+      "maximum": 720
     },
     "maxItems": {
       "title": "Maximum items",
@@ -119,6 +119,15 @@
       "maximum": 500,
       "sectionCaption": "Output",
       "sectionDescription": "How many articles to return, scheduled-run behavior, and enrichment."
+    },
+    "outputFields": {
+      "title": "Output fields",
+      "type": "array",
+      "description": "Only include these article fields in the dataset. Leave empty to return all fields. Example: [\"headline\", \"articleLink\", \"tickers\", \"sentimentLabel\", \"publishedDate\"].",
+      "editor": "stringList",
+      "default": [],
+      "example": ["headline", "articleLink", "tickers", "sentimentLabel", "publishedDate"],
+      "items": { "type": "string" }
     },
     "maxItemsPerFeed": {
       "title": "Max items per feed",

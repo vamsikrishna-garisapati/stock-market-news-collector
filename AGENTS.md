@@ -101,6 +101,22 @@ Negative earnings-only alert:
 }
 ```
 
+Lean Zapier / Slack payload:
+
+```json
+{
+  "feedPreset": "us_markets",
+  "maxItems": 30,
+  "outputFields": ["headline", "articleLink", "tickers", "sentimentLabel", "publishedDate"]
+}
+```
+
+30-day backfill:
+
+```json
+{ "feedPreset": "us_markets", "maxItems": 100, "hoursBack": 720 }
+```
+
 ### Any company, topic, or country (Google News)
 
 ```json
