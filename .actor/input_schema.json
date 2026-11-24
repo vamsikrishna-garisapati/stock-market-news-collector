@@ -21,13 +21,13 @@
         "None (search queries and ticker feeds only)",
         "Custom feeds"
       ],
-      "sectionCaption": "News sources",
+      "sectionCaption": "📰 News sources",
       "sectionDescription": "Pick a preset, search Google News, or provide your own RSS/Atom URLs. Sources are combined."
     },
     "searchQueries": {
       "title": "Google News search queries",
       "type": "array",
-      "description": "Search Google News for any company, topic, or person (max 10), e.g. \"Apple OR AAPL\", \"Reliance Industries\", \"lithium prices\". Combined with the preset. Google News operators like OR, quotes, site:, and when:7d work. Article links point to Google News redirect URLs.",
+      "description": "Search Google News for any company, topic, or person (max 10), e.g. \"Apple OR AAPL\", \"Reliance Industries\", \"lithium prices\". Combined with the preset. Google News operators like OR, quotes, site:, and when:7d work. articleLink is resolved to the publisher URL when possible; otherwise the Google News redirect is kept.",
       "editor": "stringList",
       "default": [],
       "example": ["Apple OR AAPL", "Reliance Industries"]
@@ -56,13 +56,13 @@
       "default": []
     },
     "tickers": {
-      "title": "Stock tickers",
+      "title": "💹 Stock tickers",
       "type": "array",
       "description": "Only include articles about these tickers (e.g. AAPL, TSLA, NVDA, RELIANCE.NS). Each ticker also fetches its Yahoo Finance headline feed (max 20), and well-known company names (Apple, Nvidia, Infosys, ...) count as a match. Leave empty to disable the ticker filter.",
       "editor": "stringList",
       "default": [],
       "example": ["AAPL", "NVDA"],
-      "sectionCaption": "Filters",
+      "sectionCaption": "💹 Filters",
       "sectionDescription": "Narrow results by ticker, company name, keywords, or date. Search query results skip ticker and company filters."
     },
     "useTickerFeeds": {
@@ -137,7 +137,7 @@
       "maximum": 500
     },
     "onlyNewArticles": {
-      "title": "Only new articles",
+      "title": "🔔 Only new articles",
       "type": "boolean",
       "description": "Skip articles already returned by earlier runs with the same sources and filters. Ideal for scheduled alerts: you only receive (and pay for) new headlines. History is kept for 14 days in a named key-value store.",
       "default": false
@@ -206,7 +206,7 @@
     "includeFullText": {
       "title": "Include full article text",
       "type": "boolean",
-      "description": "Fetch each returned article page and extract the readable body text. Skips paywalled publishers (Bloomberg, WSJ, FT, Barron's) and Google News redirect links. Makes runs slower.",
+      "description": "Fetch each returned article page and extract the readable body text. Skips paywalled publishers (Bloomberg, WSJ, FT, Barron's) and unresolved Google News redirect links. Makes runs slower.",
       "default": false
     },
     "fullTextMaxChars": {
@@ -222,7 +222,7 @@
       "type": "boolean",
       "description": "Remove duplicate articles that appear in multiple feeds.",
       "default": true,
-      "sectionCaption": "Advanced",
+      "sectionCaption": "⚙️ Advanced",
       "sectionDescription": "Deduplication, network settings, and failure handling."
     },
     "requestTimeoutMs": {

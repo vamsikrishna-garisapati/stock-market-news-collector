@@ -1,4 +1,4 @@
-## Stock Market News Scraper | Tickers, Google News, India, Crypto
+## Stock Market News Scraper
 
 Need finance headlines as **structured JSON** without maintaining scrapers for every publisher?
 
@@ -36,9 +36,15 @@ Sentiment and event tags are best-effort, rule-based signals — **not investmen
 
 ![India markets output](https://raw.githubusercontent.com/vamsikrishna-garisapati/stock-market-news-collector/main/.actor/screenshots/03-india-markets-output.png)
 
-## For AI agents
+<!-- DEMO: Add a 30–60s YouTube embed or GIF here once recorded.
+     Suggested storyboard: watchlist input (tickers + onlyNewArticles) → Output tab with tickers/sentiment → note Schedule for alerts.
+     Example YouTube: [![Demo](https://img.youtube.com/vi/VIDEO_ID/0.jpg)](https://youtu.be/VIDEO_ID)
+     Example GIF: ![Demo](https://raw.githubusercontent.com/.../demo.gif)
+-->
 
-This Actor is designed for MCP and API discovery:
+## 🤖 For AI agents / MCP
+
+This Actor is designed for MCP discovery and agentic runs:
 
 - **Search terms:** stock market news, company news API, ticker news, Google News finance, India stock news, crypto news, financial news sentiment
 - **Apify username:** `vamsi-krishna`
@@ -48,9 +54,11 @@ This Actor is designed for MCP and API discovery:
 - **Run outcome:** succeeds by default — check `OUTPUT.runStatus` when `count` is 0
 - **Agent guide:** see [AGENTS.md](./AGENTS.md) for input recipes, output fields, and common mistakes
 
+**MCP / AGI readiness:** Limited permissions + pay-per-event pricing means this Actor is eligible for [Apify MCP](https://docs.apify.com/mcp) and [AGI prepaid](https://agi.apify.com/) agentic payments (x402 / MPP) and Skyfire when identity-verified. Agents that pay via AGI do not need a separate Apify account; humans still use Console or the API as today. Clients that filter for `allowsAgenticUsers` / limited-permission Actors can discover and run it automatically.
+
 Apify MCP `fetch-actor-details` returns input schema, output schema, dataset field examples, and this README.
 
-## What you get
+## 📰 What you get
 
 Each article in the dataset:
 
@@ -97,7 +105,7 @@ Each run also produces a **run summary** in the Output tab: feed stats, failures
 3. For scheduled alerts, turn on **Only new articles**.
 4. Click **Start** — results appear in the Output tab within seconds. Download as JSON, CSV, or Excel, or use the [Apify API](https://docs.apify.com/api/v2).
 
-### Watchlist alert (schedule every 15–60 minutes)
+### 💹 Watchlist alert (schedule every 15–60 minutes)
 
 Each ticker pulls its own Yahoo Finance headline feed, and company names like "Apple" or "Nvidia" also count as a ticker match in the preset feeds. With `onlyNewArticles`, each run returns only headlines you haven't received yet.
 
@@ -188,7 +196,9 @@ Google News operators work: `"Apple OR AAPL"`, `"lithium site:reuters.com"`, `"n
 }
 ```
 
-### Apify API (Node.js)
+## Apify API
+
+### Node.js (`apify-client`)
 
 ```javascript
 import { ApifyClient } from 'apify-client';
@@ -199,7 +209,38 @@ const run = await client.actor('vamsi-krishna/stock-market-news-collector').call
     onlyNewArticles: true,
 });
 const { items } = await client.dataset(run.defaultDatasetId).listItems();
-console.log(items);
+const { value: output } = await client.keyValueStore(run.defaultKeyValueStoreId).getRecord('OUTPUT');
+console.log(items, output?.runStatus);
+```
+
+### Python (`apify-client`)
+
+```python
+from apify_client import ApifyClient
+
+client = ApifyClient('YOUR_APIFY_TOKEN')
+run = client.actor('vamsi-krishna/stock-market-news-collector').call(run_input={
+    'tickers': ['AAPL', 'NVDA'],
+    'onlyNewArticles': True,
+})
+items = client.dataset(run['defaultDatasetId']).list_items().items
+output = client.key_value_store(run['defaultKeyValueStoreId']).get_record('OUTPUT')['value']
+print(len(items), output.get('runStatus'))
+```
+
+### curl (sync dataset items)
+
+```bash
+curl -X POST \
+  "https://api.apify.com/v2/acts/vamsi-krishna~stock-market-news-collector/run-sync-get-dataset-items?token=YOUR_APIFY_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"tickers":["AAPL","NVDA"],"onlyNewArticles":true,"maxItems":20}'
+```
+
+To read the run summary (`runStatus`, feed stats) after an async run, fetch the `OUTPUT` record from the run’s default key-value store:
+
+```bash
+curl "https://api.apify.com/v2/key-value-stores/STORE_ID/records/OUTPUT?token=YOUR_APIFY_TOKEN"
 ```
 
 ## Feed presets
@@ -253,7 +294,7 @@ The built-in finance keywords apply only to the US, global, earnings, and custom
 
 Enrichment is rule-based and fast. Treat it as a first-pass signal, not investment advice.
 
-## Only new articles
+## 🔔 Only new articles
 
 With `onlyNewArticles: true`, the Actor remembers which articles each setup has returned (for 14 days) in a named key-value store, `stock-market-news-state`, in your account. Runs with the same sources and filters share history, so separate watchlists don't hide each other's news. Set `stateKey` to share or separate history explicitly. That value is stored encrypted. When nothing is new, `runStatus` is `no_new_items` and no articles are charged.
 
@@ -265,15 +306,21 @@ With `onlyNewArticles: true`, the Actor remembers which articles each setup has 
 - Built-in feeds are health-checked daily
 - Articles with missing dates are still included when `hoursBack` is set
 
-## Pricing
+## 💰 How much does stock market news scraping cost?
 
-Pay a fixed price per article returned, plus a small start fee. Silver subscribers pay 10% less and Gold subscribers pay 20% less. Runs stop at your **maximum cost per run**, and `onlyNewArticles` means scheduled runs don't charge again for headlines you already have.
+Pay a fixed price per article returned, plus a small start fee. On the FREE plan that is **$0.0025 per article** and about **$0.00005** to start (1 GB). Silver subscribers pay 10% less and Gold / higher tiers pay 20% less (from **$2/1k** articles).
+
+**Example:** a typical 50-article US markets run on FREE ≈ `50 × $0.0025 + $0.00005` ≈ **$0.13**. With `onlyNewArticles`, scheduled runs only charge for headlines you have not already received. Runs also stop at your **maximum cost per run**.
 
 ## Integrations
 
 Schedule runs with Apify, or connect via **Make**, **Zapier**, **n8n**, Slack, and webhooks for automated news monitoring.
 
-## FAQ
+## ❓ FAQ
+
+### Why use this instead of a Google News scraper / NewsAPI?
+
+Generic Google News scrapers return search hits only. NewsAPI-style products often need a separate key, rate limits, and no finance presets. This Actor combines **curated US / India / crypto RSS presets**, **per-ticker Yahoo Finance feeds**, **Google News search**, and **built-in enrichment** (tickers, company details, event tags, sentiment) plus **`onlyNewArticles`** for scheduled Slack/Zapier alerts — one Actor, structured JSON, no login.
 
 ### Can I filter news by stock ticker?
 
@@ -285,7 +332,7 @@ Yes. Use the `india_markets` preset, or Google News `searchQueries` with `search
 
 ### Why do Google News results link to news.google.com?
 
-Google News RSS provides redirect links. They open the original article in a browser; `source` holds the real publisher name. Full text extraction skips these links.
+Google News RSS starts as redirect links. The Actor resolves `articleLink` to the publisher URL when possible (best-effort, no browser); on failure it keeps the Google News redirect. `source` is always the publisher name. Full text still skips unresolved `news.google.com` links.
 
 ### How do I get all articles without keyword filtering?
 
@@ -303,7 +350,7 @@ The Actor reads public RSS feeds and, optionally, publicly accessible article pa
 
 - Full text skips paywalled publishers (Bloomberg, WSJ, FT, Barron's) and some sites block automated requests
 - Ticker detection, company recognition, event tags, and sentiment are best-effort
-- Google News article links are redirect URLs
+- Google News `articleLink` is resolved to the publisher URL when possible; otherwise the redirect is kept
 
 Use only feeds and content you are allowed to collect under applicable terms of service.
 

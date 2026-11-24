@@ -80,6 +80,187 @@ export function canonicalizeUrl(url) {
     }
 }
 
+const GOOGLE_NEWS_HOST = 'news.google.com';
+const GOOGLE_NEWS_BATCHEXECUTE_URL = 'https://news.google.com/_/DotsSplashUi/data/batchexecute';
+const PUBLISHER_URL_RESOLVE_CONCURRENCY = 5;
+const DEFAULT_RESOLVE_USER_AGENT = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+
+/** True for Google News article/read wrapper URLs (including RSS article links). */
+export function isGoogleNewsArticleUrl(url) {
+    if (!url || typeof url !== 'string') return false;
+    try {
+        const parsed = new URL(url);
+        if (parsed.hostname.toLowerCase() !== GOOGLE_NEWS_HOST) return false;
+        const parts = parsed.pathname.split('/').filter(Boolean);
+        if (parts.length < 2) return false;
+        const kind = parts[parts.length - 2];
+        return kind === 'articles' || kind === 'read';
+    } catch {
+        return false;
+    }
+}
+
+/** Article id segment from a Google News wrapper URL, or null. */
+export function googleNewsArticleId(url) {
+    if (!isGoogleNewsArticleUrl(url)) return null;
+    try {
+        const parts = new URL(url).pathname.split('/').filter(Boolean);
+        return parts[parts.length - 1] || null;
+    } catch {
+        return null;
+    }
+}
+
+function firstMatch(text, pattern) {
+    const match = text.match(pattern);
+    return match?.[1] || null;
+}
+
+function parseBatchexecutePublisherUrl(body) {
+    if (!body || typeof body !== 'string') return null;
+
+    const stripped = body.replace(/^\)\]\}'\s*/, '');
+    const jsonChunk = stripped.includes('\n\n') ? stripped.split('\n\n').slice(1).join('\n\n') : stripped;
+
+    try {
+        const rows = JSON.parse(jsonChunk);
+        const payload = rows?.[0]?.[2];
+        const decoded = typeof payload === 'string' ? JSON.parse(payload) : null;
+        if (Array.isArray(decoded) && decoded[0] === 'garturlres' && typeof decoded[1] === 'string') {
+            return decoded[1];
+        }
+    } catch {
+        // Fall through to a loose regex for slightly different response envelopes.
+    }
+
+    const loose = body.match(/\[\s*"garturlres"\s*,\s*"(https?:\\\/\\\/[^"]+|https?:\/\/[^"]+)"/);
+    if (!loose?.[1]) return null;
+    return loose[1].replace(/\\u003d/g, '=').replace(/\\\//g, '/');
+}
+
+async function fetchGoogleNewsDecodeParams(articleId, { timeoutMs, userAgent, fetchImpl }) {
+    for (const prefix of ['articles', 'rss/articles']) {
+        try {
+            const response = await fetchImpl(`https://${GOOGLE_NEWS_HOST}/${prefix}/${articleId}`, {
+                headers: { 'User-Agent': userAgent, Accept: 'text/html' },
+                redirect: 'follow',
+                signal: AbortSignal.timeout(timeoutMs),
+            });
+            if (!response.ok) continue;
+
+            const html = await response.text();
+            const signature = firstMatch(html, /data-n-a-sg="([^"]+)"/);
+            const timestamp = firstMatch(html, /data-n-a-ts="([^"]+)"/);
+            if (signature && timestamp && /^\d+$/.test(timestamp)) {
+                return { signature, timestamp };
+            }
+        } catch {
+            // Try the next path prefix.
+        }
+    }
+    return null;
+}
+
+/**
+ * Best-effort Google News wrapper → publisher URL (no browser).
+ * On any failure, returns the original URL unchanged.
+ */
+export async function resolveGoogleNewsPublisherUrl(url, {
+    timeoutMs = 15_000,
+    userAgent = DEFAULT_RESOLVE_USER_AGENT,
+    fetchImpl = globalThis.fetch,
+} = {}) {
+    const articleId = googleNewsArticleId(url);
+    if (!articleId) return url;
+
+    try {
+        const params = await fetchGoogleNewsDecodeParams(articleId, { timeoutMs, userAgent, fetchImpl });
+        if (!params) return url;
+
+        const requestBody = [
+            'garturlreq',
+            [
+                ['en-US', 'US', ['FINANCE_TOP_INDICES', 'WEB_TEST_1_0_0'], null, null, 1, 1, 'US:en', null, 1, null, null, null, null, null, 0, 1],
+                'en-US',
+                'US',
+                1,
+                [1, 1, 1],
+                1,
+                1,
+                null,
+                0,
+                0,
+                null,
+                0,
+            ],
+            articleId,
+            Number(params.timestamp),
+            params.signature,
+        ];
+        const fReq = JSON.stringify([[['Fbv4je', JSON.stringify(requestBody), null, 'generic']]]);
+
+        const response = await fetchImpl(GOOGLE_NEWS_BATCHEXECUTE_URL, {
+            method: 'POST',
+            headers: {
+                'User-Agent': userAgent,
+                'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8',
+            },
+            body: `f.req=${encodeURIComponent(fReq)}`,
+            signal: AbortSignal.timeout(timeoutMs),
+        });
+        if (!response.ok) return url;
+
+        const publisherUrl = parseBatchexecutePublisherUrl(await response.text());
+        if (!publisherUrl || !isValidHttpUrl(publisherUrl) || isGoogleNewsArticleUrl(publisherUrl)) {
+            return url;
+        }
+
+        return canonicalizeUrl(publisherUrl) || publisherUrl;
+    } catch {
+        return url;
+    }
+}
+
+/**
+ * Mutates articleLink on Google News items when the publisher URL can be resolved.
+ * Leaves non-Google and failed items unchanged. Returns resolve counts.
+ */
+export async function resolvePublisherUrls(articles, {
+    timeoutMs = 15_000,
+    userAgent = DEFAULT_RESOLVE_USER_AGENT,
+    concurrency = PUBLISHER_URL_RESOLVE_CONCURRENCY,
+    fetchImpl = globalThis.fetch,
+} = {}) {
+    const targets = articles.filter((article) => isGoogleNewsArticleUrl(article?.articleLink));
+    if (!targets.length) {
+        return { attempted: 0, resolved: 0, failed: 0 };
+    }
+
+    let next = 0;
+    let resolved = 0;
+    let failed = 0;
+
+    async function worker() {
+        while (next < targets.length) {
+            const article = targets[next];
+            next += 1;
+            const original = article.articleLink;
+            const publisher = await resolveGoogleNewsPublisherUrl(original, { timeoutMs, userAgent, fetchImpl });
+            if (publisher && publisher !== original) {
+                article.articleLink = publisher;
+                resolved += 1;
+            } else {
+                failed += 1;
+            }
+        }
+    }
+
+    const workers = Math.min(Math.max(1, concurrency), targets.length);
+    await Promise.all(Array.from({ length: workers }, worker));
+
+    return { attempted: targets.length, resolved, failed };
+}
+
 export function escapeRegex(value) {
     return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }

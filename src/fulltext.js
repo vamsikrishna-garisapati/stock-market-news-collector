@@ -3,6 +3,7 @@ import { parseHTML } from 'linkedom';
 import { USER_AGENT } from './feeds.js';
 
 const PAYWALLED_HOSTS = ['bloomberg.com', 'wsj.com', 'ft.com', 'barrons.com', 'economist.com'];
+// Unresolved Google News wrappers only — main.js resolves articleLink to the publisher when possible.
 const UNSUPPORTED_HOSTS = ['news.google.com'];
 const MAX_HTML_BYTES = 3_000_000;
 const MIN_TEXT_LENGTH = 200;

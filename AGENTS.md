@@ -9,9 +9,10 @@ Instructions for AI agents (MCP, Apify API, x402) that discover, call, or chain 
 | **Username** | `vamsi-krishna` |
 | **Name** | `stock-market-news-collector` |
 | **Full Actor ID** | `vamsi-krishna/stock-market-news-collector` |
-| **Title** | Stock Market News Scraper \| Tickers, Google News, India, Crypto |
+| **Title** | Stock Market News Scraper |
 | **Type** | RSS/Atom news aggregator with Google News search (no browser, no login) |
 | **Runtime** | Node.js, typically completes in seconds (longer with `includeFullText`) |
+| **Agent payments** | Limited permissions + pay-per-event → eligible for AGI prepaid / MCP agentic payments (x402, MPP, Skyfire when identity-verified). No Actor-side payment protocol code required. |
 
 ## When to use this Actor
 
@@ -45,7 +46,7 @@ One item per news article. Key fields:
 | `headline` | string | Article title (HTML stripped) |
 | `source` | string | Publisher name |
 | `publishedDate` | string | ISO 8601 publication time |
-| `articleLink` | string | Canonical URL (Google News redirect URL for search results) |
+| `articleLink` | string | Canonical URL (Google News → publisher URL when resolved; else redirect) |
 | `summary` | string | RSS summary, max 320 chars (empty for Google News results) |
 | `tickers` | string[] | Symbols detected from text, company names, or per-ticker feeds |
 | `companyDetails` | object[] | `{ ticker, name, exchange, sector }` when `enrichArticles` is on (default) |
@@ -163,7 +164,7 @@ Lean Zapier / Slack payload:
 1. **Zero results with tickers** — usually an explicit `includeKeywords` list or a short `hoursBack` window. Omit `includeKeywords` (or set `[]`) and keep `useTickerFeeds` on.
 2. **Assuming run failed on empty dataset** — check `OUTPUT.runStatus`: `no_new_items` means `onlyNewArticles` already returned everything; `no_items` means filters matched nothing.
 3. **Expecting full text by default** — set `includeFullText: true`; paywalled publishers and Google News links return `fullTextStatus` `paywalled` or `unsupported`.
-4. **Expecting publisher URLs from Google News** — `articleLink` is a news.google.com redirect; `source` is the real publisher.
+4. **Expecting publisher URLs from Google News** — `articleLink` is resolved to the publisher when possible; unresolved rows keep the news.google.com redirect. `source` is always the publisher name.
 5. **Sharing `onlyNewArticles` history unintentionally** — history is separated by sources and filters; pass distinct `stateKey` values (stored encrypted) to separate runs with identical setups.
 
 ## Apify API

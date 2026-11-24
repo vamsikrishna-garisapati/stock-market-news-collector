@@ -1,6 +1,6 @@
 import { Actor, log } from 'apify';
 import { EVENT_TYPE_IDS, classifyEvents, detectCompanies, scoreSentiment } from './enrich.js';
-import { DEFAULT_PRESET, FEED_PRESETS, createParser } from './feeds.js';
+import { DEFAULT_PRESET, FEED_PRESETS, USER_AGENT, createParser } from './feeds.js';
 import { addFullText } from './fulltext.js';
 import { deriveStateKey, loadSeenArticles, saveSeenArticles } from './state.js';
 import {
@@ -21,6 +21,7 @@ import {
     normalizeFilterEventTypes,
     projectOutputFields,
     resolveIncludeKeywords,
+    resolvePublisherUrls,
     resolveRunStatus,
     sanitizeHttpUrl,
     stripPublisherSuffix,
@@ -449,6 +450,18 @@ await Actor.main(async () => {
             log.warning(`Output cut to ${chargeableItems} article(s) to stay within your maximum cost per run.`);
         }
 
+        let publisherUrlStats = null;
+        if (output.length) {
+            await Actor.setStatusMessage(`Resolving publisher URLs when possible...`);
+            publisherUrlStats = await resolvePublisherUrls(output, {
+                timeoutMs: requestTimeoutMs,
+                userAgent: USER_AGENT,
+            });
+            if (publisherUrlStats.attempted) {
+                log.info('Publisher URL resolve', publisherUrlStats);
+            }
+        }
+
         let fullTextStats = null;
         if (includeFullText && output.length) {
             await Actor.setStatusMessage(`Fetching full text for ${output.length} article(s)...`);
@@ -503,6 +516,7 @@ await Actor.main(async () => {
             skippedAlreadySeen,
             stateKey: seenState?.stateKey ?? null,
             spendingLimitReached,
+            publisherUrlStats,
             fullTextStats,
             warnings,
             feedStats,
@@ -526,6 +540,7 @@ await Actor.main(async () => {
             skippedAlreadySeen: 0,
             stateKey: null,
             spendingLimitReached: false,
+            publisherUrlStats: null,
             fullTextStats: null,
             warnings: [error.message],
             feedStats: [],

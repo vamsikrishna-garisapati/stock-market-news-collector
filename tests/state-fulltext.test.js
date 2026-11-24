@@ -61,10 +61,11 @@ describe('pruneSeen', () => {
 });
 
 describe('fullTextSkipReason', () => {
-    it('skips paywalled and Google News links', () => {
+    it('skips paywalled and unresolved Google News links', () => {
         assert.equal(fullTextSkipReason('https://www.bloomberg.com/news/articles/x'), 'paywalled');
         assert.equal(fullTextSkipReason('https://news.google.com/rss/articles/abc'), 'unsupported');
         assert.equal(fullTextSkipReason('https://www.cnbc.com/2026/10/10/story.html'), null);
+        assert.equal(fullTextSkipReason('https://mashable.com/tech/story'), null);
     });
 });
 
