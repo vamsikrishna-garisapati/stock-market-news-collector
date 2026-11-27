@@ -278,7 +278,7 @@ await Actor.main(async () => {
         failOnAllFeedsFailed = input.failOnAllFeedsFailed === true;
 
         const maxItems = Math.min(Math.max(Number(input.maxItems ?? 50), 1), 500);
-        const hoursBack = Math.min(Math.max(Number(input.hoursBack ?? 24), 0), 720);
+        const hoursBack = Math.min(Math.max(Number(input.hoursBack ?? 72), 0), 720);
         const excludeKeywords = Array.isArray(input.excludeKeywords) ? input.excludeKeywords : [];
         const tickers = Array.isArray(input.tickers) ? input.tickers : [];
         const companies = Array.isArray(input.companies) ? input.companies : [];

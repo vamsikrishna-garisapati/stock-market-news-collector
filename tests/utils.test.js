@@ -1,6 +1,7 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { EVENT_TYPE_IDS } from '../src/enrich.js';
+import { FEED_PRESETS } from '../src/feeds.js';
 import {
     DEFAULT_INCLUDE_KEYWORDS,
     MAX_SEARCH_QUERIES,
@@ -145,6 +146,14 @@ describe('buildTickerFeeds', () => {
     });
 });
 
+describe('FEED_PRESETS', () => {
+    it('opts curated presets out of automatic finance keywords', () => {
+        for (const name of ['us_markets', 'global_markets', 'earnings', 'india_markets', 'crypto', 'none']) {
+            assert.equal(FEED_PRESETS[name].useDefaultKeywords, false, name);
+        }
+    });
+});
+
 describe('resolveIncludeKeywords', () => {
     it('uses default keywords when nothing is set', () => {
         assert.deepEqual(resolveIncludeKeywords({}).keywords, DEFAULT_INCLUDE_KEYWORDS);
@@ -259,11 +268,25 @@ describe('buildStatusMessage', () => {
             spendingLimitReached: true,
         });
         assert.match(msg, /Saved 10 news item\(s\)\. Stopped at your maximum cost per run\./);
+        assert.match(msg, /If this saved you time, a review helps other builders find it\./);
+    });
+
+    it('asks for a review when articles were saved', () => {
+        const msg = buildStatusMessage({
+            itemCount: 5,
+            feedsRequested: 4,
+            failures: [],
+            runStatus: 'ok',
+            warnings: [],
+        });
+        assert.match(msg, /Saved 5 news item\(s\)\./);
+        assert.match(msg, /If this saved you time, a review helps other builders find it\./);
     });
 
     it('explains a run with no new articles', () => {
         const msg = buildStatusMessage({ itemCount: 0, feedsRequested: 4, failures: [], runStatus: 'no_new_items', warnings: [] });
         assert.match(msg, /No new articles since the last run/);
+        assert.doesNotMatch(msg, /review helps other builders/);
     });
 });
 

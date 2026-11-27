@@ -90,7 +90,7 @@
     "includeKeywords": {
       "title": "Include keywords",
       "type": "array",
-      "description": "Only include articles where the headline or summary contains at least one keyword. Leave unset to use built-in finance keywords (stock, market, earnings, S&P, Dow, Nasdaq, ...), which apply only to the US, global, earnings, and custom presets when no tickers, companies, or search queries are set. Use [] to disable keyword filtering; an explicit list is always applied.",
+      "description": "Only include articles where the headline or summary contains at least one keyword. Leave unset to skip keyword filtering on curated presets (us_markets, global_markets, earnings, india_markets, crypto, none). Built-in finance keywords (stock, market, earnings, S&P, Dow, Nasdaq, ...) apply only for the custom preset or when you pass an explicit feeds list, and only when no tickers, companies, or search queries are set. Use [] to disable keyword filtering; an explicit list is always applied.",
       "editor": "json",
       "example": ["stock", "earnings", "Nasdaq"]
     },
@@ -105,7 +105,7 @@
       "title": "Hours back",
       "type": "integer",
       "description": "Only include articles published within this many hours (max 720 = 30 days). Use 0 to disable the date filter.",
-      "default": 24,
+      "default": 72,
       "minimum": 0,
       "maximum": 720
     },

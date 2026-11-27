@@ -8,13 +8,26 @@ Need finance headlines as **structured JSON** without maintaining scrapers for e
 2. **Any company or topic** — Google News search by query, country, and language
 3. **India / crypto / US markets** — curated presets for dashboards, sentiment triage, and AI/RAG
 
-### Start in 30 seconds
+### 💹 Watchlist alert → Zapier / n8n / Slack
 
-1. Leave the default **US markets** prefill (`us_markets`, 50 items, last 24 hours) — or switch to India / crypto
-2. Click **Start**
-3. Open the **Output** tab for headlines with `tickers`, `sentimentLabel`, and `eventTypes`
+Schedule ticker news and send **only new headlines** to Zapier, n8n, Make, or Slack.
 
-> **Tip — zero results?** An explicit `includeKeywords` list or a short `hoursBack` window often filters everything out. Clear keywords (or set `[]`) and keep `useTickerFeeds` on when using tickers. When `count` is 0, check `OUTPUT.runStatus` (`no_items`, `no_new_items`, `all_feeds_failed`, …) — the run still succeeds by default.
+```json
+{
+  "feedPreset": "us_markets",
+  "tickers": ["AAPL", "NVDA", "TSLA"],
+  "onlyNewArticles": true,
+  "hoursBack": 24
+}
+```
+
+1. Paste your tickers and turn on **Only new articles**
+2. Open **Schedules** and run every 15–60 minutes
+3. Connect **Zapier**, **n8n**, **Make**, or a webhook for Slack
+
+![Watchlist alerts via Apify → n8n → Slack](https://raw.githubusercontent.com/vamsikrishna-garisapati/stock-market-news-collector/main/.actor/screenshots/stock-market-news-slack-demo.gif)
+
+Or leave the default **US markets** prefill (`us_markets`, 50 items, last 72 hours) and click **Start**.
 
 **What this is:** Public **RSS feeds + Google News** → JSON. Headlines and metadata from sources that include MarketWatch, CNBC, Yahoo Finance, Economic Times, Mint, and crypto outlets — **not** paywalled full text from Bloomberg, WSJ, or FT. Optional `includeFullText` works only on non-paywalled pages.
 
@@ -35,12 +48,6 @@ Sentiment and event tags are best-effort, rule-based signals — **not investmen
 **India markets output**
 
 ![India markets output](https://raw.githubusercontent.com/vamsikrishna-garisapati/stock-market-news-collector/main/.actor/screenshots/03-india-markets-output.png)
-
-<!-- DEMO: Add a 30–60s YouTube embed or GIF here once recorded.
-     Suggested storyboard: watchlist input (tickers + onlyNewArticles) → Output tab with tickers/sentiment → note Schedule for alerts.
-     Example YouTube: [![Demo](https://img.youtube.com/vi/VIDEO_ID/0.jpg)](https://youtu.be/VIDEO_ID)
-     Example GIF: ![Demo](https://raw.githubusercontent.com/.../demo.gif)
--->
 
 ## 🤖 For AI agents / MCP
 
@@ -105,18 +112,9 @@ Each run also produces a **run summary** in the Output tab: feed stats, failures
 3. For scheduled alerts, turn on **Only new articles**.
 4. Click **Start** — results appear in the Output tab within seconds. Download as JSON, CSV, or Excel, or use the [Apify API](https://docs.apify.com/api/v2).
 
-### 💹 Watchlist alert (schedule every 15–60 minutes)
+### Watchlist variants
 
-Each ticker pulls its own Yahoo Finance headline feed, and company names like "Apple" or "Nvidia" also count as a ticker match in the preset feeds. With `onlyNewArticles`, each run returns only headlines you haven't received yet.
-
-```json
-{
-  "feedPreset": "us_markets",
-  "tickers": ["AAPL", "NVDA", "TSLA"],
-  "onlyNewArticles": true,
-  "hoursBack": 24
-}
-```
+Primary watchlist recipe (tickers + `onlyNewArticles` + schedule) is at the top. Each ticker also pulls its Yahoo Finance headline feed; names like "Apple" or "Nvidia" count as ticker matches in the preset feeds.
 
 Negative earnings-only alert:
 
@@ -269,9 +267,9 @@ Search queries and ticker feeds are added on top of any preset.
 | `useTickerFeeds` | `true` | Fetch per-ticker Yahoo Finance feeds when `tickers` are set |
 | `companies` | `[]` | Filter by company name in headline/summary |
 | `tickerMatchMode` | `any` | `any` or `all` tickers must match |
-| `includeKeywords` | Finance terms (see below) | Match headline + summary; set `[]` to disable |
+| `includeKeywords` | unset (see below) | Match headline + summary; set `[]` to disable |
 | `excludeKeywords` | `[]` | Exclude matching articles |
-| `hoursBack` | `24` | Only articles from the last N hours (max 720 = 30 days; `0` = no date filter) |
+| `hoursBack` | `72` | Only articles from the last N hours (max 720 = 30 days; `0` = no date filter) |
 | `maxItems` | `50` | Max articles returned (up to 500) |
 | `outputFields` | `[]` | Restrict dataset fields (e.g. for Zapier); empty = all. Always keeps `headline`, `articleLink`, `source`, `fetchedAt` |
 | `onlyNewArticles` | `false` | Skip articles returned by earlier runs with the same setup |
@@ -284,7 +282,7 @@ Search queries and ticker feeds are added on top of any preset.
 
 Advanced: `maxItemsPerFeed`, `fullTextMaxChars` (default 10000), `deduplicate` (default true), `requestTimeoutMs` (default 15000), `feedRetries` (default 1).
 
-The built-in finance keywords apply only to the US, global, earnings, and custom presets, and only when you set no tickers, companies, or search queries.
+Curated presets (`us_markets`, `global_markets`, `earnings`, `india_markets`, `crypto`) do **not** auto-apply finance keywords — their feeds are already on-topic. Built-in finance keywords apply only for `custom` / an explicit feeds list when you leave `includeKeywords` unset and set no tickers, companies, or search queries.
 
 ## Enrichment
 
@@ -308,9 +306,9 @@ With `onlyNewArticles: true`, the Actor remembers which articles each setup has 
 
 ## 💰 How much does stock market news scraping cost?
 
-Pay a fixed price per article returned, plus a small start fee. On the FREE plan that is **$0.0025 per article** and about **$0.00005** to start (1 GB). Silver subscribers pay 10% less and Gold / higher tiers pay 20% less (from **$2/1k** articles).
+**50 headlines ≈ $0.10.** A small start fee applies each run. With `onlyNewArticles`, scheduled runs do not re-charge for headlines already returned.
 
-**Example:** a typical 50-article US markets run on FREE ≈ `50 × $0.0025 + $0.00005` ≈ **$0.13**. With `onlyNewArticles`, scheduled runs only charge for headlines you have not already received. Runs also stop at your **maximum cost per run**.
+On the FREE plan that is **$0.0025 per article** and about **$0.00005** to start (1 GB). Silver subscribers pay 10% less and Gold / higher tiers pay 20% less. Runs also stop at your **maximum cost per run**.
 
 ## Integrations
 
@@ -336,11 +334,11 @@ Google News RSS starts as redirect links. The Actor resolves `articleLink` to th
 
 ### How do I get all articles without keyword filtering?
 
-Set `includeKeywords` to `[]`.
+Curated presets already skip automatic finance keywords. For `custom` feeds, set `includeKeywords` to `[]`.
 
 ### Why did I get zero articles?
 
-Check `runStatus`. `no_new_items` means everything was already returned by an earlier run. `no_items` means filters were too strict or `hoursBack` too short. `all_feeds_failed` lists errors in `failures`.
+Usually an explicit `includeKeywords` list, a short `hoursBack` window, or `onlyNewArticles` with nothing new. Clear keywords (or set `[]`) and keep `useTickerFeeds` on when using tickers. Check `runStatus`: `no_new_items` means everything was already returned; `no_items` means filters matched nothing; `all_feeds_failed` lists errors in `failures`. The run still succeeds by default.
 
 ### Is this legal?
 
@@ -359,3 +357,5 @@ Use only feeds and content you are allowed to collect under applicable terms of 
 This Actor collects publicly available news headlines and metadata from third-party publishers. It does not scrape personal profiles, login-gated content, or user account data. You are responsible for ensuring your use of collected data complies with applicable privacy laws (including GDPR) and publisher terms of service.
 
 Report bugs or request features via the **Issues** tab on this Actor's Apify Store page or the linked GitHub repository.
+
+If this saved you time, a review helps other builders find it.

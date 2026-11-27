@@ -29,21 +29,22 @@ export const DEFAULT_PRESET = 'us_markets';
 
 /**
  * `useDefaultKeywords` controls whether the built-in finance keyword list is
- * applied when the user leaves includeKeywords unset. Topical presets (India,
- * crypto) skip it because their feeds are already on-topic.
+ * applied when the user leaves includeKeywords unset. Curated presets skip it
+ * because their feeds are already on-topic; only `custom` (and explicit
+ * includeKeywords arrays) apply keyword filtering by default.
  */
 export const FEED_PRESETS = {
     us_markets: {
         feeds: [FEEDS.marketWatchTopStories, FEEDS.marketWatchBulletins, FEEDS.cnbcInvesting, FEEDS.bloombergMarkets],
-        useDefaultKeywords: true,
+        useDefaultKeywords: false,
     },
     global_markets: {
         feeds: [FEEDS.bloombergMarkets, FEEDS.cnbcInternational, FEEDS.marketWatchTopStories],
-        useDefaultKeywords: true,
+        useDefaultKeywords: false,
     },
     earnings: {
         feeds: [FEEDS.cnbcEarnings, FEEDS.cnbcInvesting, FEEDS.bloombergMarkets],
-        useDefaultKeywords: true,
+        useDefaultKeywords: false,
     },
     india_markets: {
         feeds: [

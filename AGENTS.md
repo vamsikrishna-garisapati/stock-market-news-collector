@@ -74,12 +74,14 @@ Run metadata only — read the **default dataset** for article records.
 ### US market headlines (default)
 
 ```json
-{ "feedPreset": "us_markets", "maxItems": 50, "hoursBack": 24 }
+{ "feedPreset": "us_markets", "maxItems": 50, "hoursBack": 72 }
 ```
+
+Curated presets do not auto-apply finance keywords. Built-in keywords apply only for `custom` / explicit feeds when `includeKeywords` is unset and no tickers, companies, or search queries are set.
 
 ### Watchlist alert (scheduled)
 
-Each ticker adds its Yahoo Finance headline feed (max 20 tickers; disable with `useTickerFeeds: false`). Known company names (Apple, Nvidia, Infosys, ...) also count as ticker matches. The default finance keyword filter is skipped when `tickers`, `companies`, or `searchQueries` are set.
+Each ticker adds its Yahoo Finance headline feed (max 20 tickers; disable with `useTickerFeeds: false`). Known company names (Apple, Nvidia, Infosys, ...) also count as ticker matches. Keyword filtering is also skipped when `tickers`, `companies`, or `searchQueries` are set.
 
 ```json
 {
@@ -161,7 +163,7 @@ Lean Zapier / Slack payload:
 
 ## Common mistakes
 
-1. **Zero results with tickers** — usually an explicit `includeKeywords` list or a short `hoursBack` window. Omit `includeKeywords` (or set `[]`) and keep `useTickerFeeds` on.
+1. **Zero results with tickers or tight filters** — usually an explicit `includeKeywords` list or a short `hoursBack` window (curated presets no longer auto-filter by finance keywords). Omit `includeKeywords` (or set `[]`) and keep `useTickerFeeds` on.
 2. **Assuming run failed on empty dataset** — check `OUTPUT.runStatus`: `no_new_items` means `onlyNewArticles` already returned everything; `no_items` means filters matched nothing.
 3. **Expecting full text by default** — set `includeFullText: true`; paywalled publishers and Google News links return `fullTextStatus` `paywalled` or `unsupported`.
 4. **Expecting publisher URLs from Google News** — `articleLink` is resolved to the publisher when possible; unresolved rows keep the news.google.com redirect. `source` is always the publisher name.

@@ -2,7 +2,7 @@
   "actorSpecification": 1,
   "name": "stock-market-news-collector",
   "title": "Stock Market News Scraper",
-  "description": "Get stock market news as JSON from RSS and Google News. Filter by ticker, add sentiment and event tags, schedule only-new alerts for Slack or Zapier. US, India, and crypto presets — MarketWatch, CNBC, Yahoo Finance. Export CSV/Excel or use the API. From $2/1k. No login.",
+  "description": "Get stock market news as JSON from RSS and Google News. Filter by ticker, add sentiment and event tags, schedule only-new alerts for Slack or Zapier. US, India, and crypto presets — MarketWatch, CNBC, Yahoo Finance. Export CSV/Excel or use the API. 50 headlines ≈ $0.10 (+ start fee). No login.",
   "version": "0.5",
   "buildTag": "latest",
   "categories": ["NEWS", "FINANCE"],
@@ -12,7 +12,7 @@
   "prefillInput": {
     "feedPreset": "us_markets",
     "maxItems": 50,
-    "hoursBack": 24,
+    "hoursBack": 72,
     "deduplicate": true,
     "requestTimeoutMs": 15000,
     "feedRetries": 1

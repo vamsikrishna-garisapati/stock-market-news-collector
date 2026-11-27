@@ -539,6 +539,9 @@ export function buildStatusMessage({ itemCount, feedsRequested, failures, runSta
     if (warnings.length && runStatus !== 'no_items' && runStatus !== 'all_feeds_failed') {
         parts.push(warnings[0]);
     }
+    if (itemCount > 0) {
+        parts.push('If this saved you time, a review helps other builders find it.');
+    }
 
     return parts.join(' ');
 }

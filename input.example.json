@@ -1,7 +1,7 @@
 {
   "feedPreset": "us_markets",
   "maxItems": 50,
-  "hoursBack": 24,
+  "hoursBack": 72,
   "deduplicate": true,
   "requestTimeoutMs": 15000,
   "feedRetries": 1
