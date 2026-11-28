@@ -340,6 +340,14 @@ Curated presets already skip automatic finance keywords. For `custom` feeds, set
 
 Usually an explicit `includeKeywords` list, a short `hoursBack` window, or `onlyNewArticles` with nothing new. Clear keywords (or set `[]`) and keep `useTickerFeeds` on when using tickers. Check `runStatus`: `no_new_items` means everything was already returned; `no_items` means filters matched nothing; `all_feeds_failed` lists errors in `failures`. The run still succeeds by default.
 
+### Why did Yahoo ticker feeds fail with 429?
+
+Yahoo Finance sometimes rate-limits its RSS when several ticker feeds are requested at once. The Actor fetches ticker feeds one at a time with backoff on HTTP 429. If a feed still fails, check `OUTPUT.failures`, retry later, or set `useTickerFeeds: false` and rely on Google News `searchQueries` / preset feeds. Also raise `maxItems` (and your run spending limit) if the dataset was cut short.
+
+### Why do Google News results include shopping or off-topic hits?
+
+Google News is broad. The Actor appends shopping exclusions (e.g. `-shopping`, `-coupon`) to search queries unless you clearly searched for deals. When you also set `tickers` or `companies`, those filters apply to Google News hits too — not only to preset RSS feeds.
+
 ### Is this legal?
 
 The Actor reads public RSS feeds and, optionally, publicly accessible article pages. Verify publisher terms if you redistribute content commercially.

@@ -7,20 +7,26 @@ import {
     MAX_SEARCH_QUERIES,
     MAX_TICKER_FEEDS,
     applyEnrichmentFilters,
+    GOOGLE_NEWS_SHOPPING_EXCLUSIONS,
     buildGoogleNewsFeeds,
+    buildGoogleNewsQuery,
     buildStatusMessage,
     buildTickerFeeds,
     canonicalizeUrl,
     cleanText,
     detectTickers,
     enrichmentFiltersActive,
+    feedRetryDelayMs,
+    isRateLimitError,
     isValidHttpUrl,
+    mapPool,
     matchesKeyword,
     matchesTickerFilter,
     normalizeFilterEventTypes,
     projectOutputFields,
     resolveIncludeKeywords,
     resolveRunStatus,
+    shouldAppendShoppingExclusions,
     stripPublisherSuffix,
     validateCustomFeeds,
 } from '../src/utils.js';
@@ -130,6 +136,47 @@ describe('matchesTickerFilter', () => {
     });
 });
 
+describe('isRateLimitError / feedRetryDelayMs', () => {
+    it('detects HTTP 429 and rate-limit wording', () => {
+        assert.equal(isRateLimitError({ statusCode: 429 }), true);
+        assert.equal(isRateLimitError(new Error('Status code 429')), true);
+        assert.equal(isRateLimitError(new Error('Too Many Requests')), true);
+        assert.equal(isRateLimitError(new Error('Status code 500')), false);
+    });
+
+    it('uses longer backoff for rate limits', () => {
+        assert.equal(feedRetryDelayMs(0, new Error('ok')), 500);
+        assert.equal(feedRetryDelayMs(0, { statusCode: 429 }), 2000);
+        assert.equal(feedRetryDelayMs(1, { statusCode: 429 }), 4000);
+        assert.equal(feedRetryDelayMs(3, { statusCode: 429 }), 15000);
+    });
+});
+
+describe('mapPool', () => {
+    it('preserves order with limited concurrency', async () => {
+        const seen = [];
+        const results = await mapPool([1, 2, 3, 4], 2, async (n) => {
+            seen.push(n);
+            await new Promise((r) => setTimeout(r, 5));
+            return n * 10;
+        });
+        assert.deepEqual(results.map((r) => r.status), ['fulfilled', 'fulfilled', 'fulfilled', 'fulfilled']);
+        assert.deepEqual(results.map((r) => r.value), [10, 20, 30, 40]);
+        assert.equal(seen.length, 4);
+    });
+
+    it('captures rejections without stopping siblings', async () => {
+        const results = await mapPool([1, 2, 3], 2, async (n) => {
+            if (n === 2) throw new Error('boom');
+            return n;
+        });
+        assert.equal(results[0].status, 'fulfilled');
+        assert.equal(results[1].status, 'rejected');
+        assert.equal(results[2].status, 'fulfilled');
+        assert.equal(results[2].value, 3);
+    });
+});
+
 describe('buildTickerFeeds', () => {
     it('builds one Yahoo feed per unique ticker', () => {
         const { feeds, skipped } = buildTickerFeeds(['aapl', '$AAPL', 'BRK-B']);
@@ -181,11 +228,33 @@ describe('resolveIncludeKeywords', () => {
     });
 });
 
+describe('buildGoogleNewsQuery / shopping exclusions', () => {
+    it('appends shopping exclusions and a time window by default', () => {
+        assert.equal(shouldAppendShoppingExclusions('Tesla OR TSLA'), true);
+        const q = buildGoogleNewsQuery('Tesla OR TSLA', { hoursBack: 24 });
+        assert.match(q, /^Tesla OR TSLA /);
+        assert.match(q, /when:24h$/);
+        assert.ok(q.includes(GOOGLE_NEWS_SHOPPING_EXCLUSIONS));
+    });
+
+    it('does not rewrite intentional shopping queries or existing -shopping', () => {
+        assert.equal(shouldAppendShoppingExclusions('iPhone shopping deals'), false);
+        assert.equal(shouldAppendShoppingExclusions('Tesla -shopping'), false);
+        assert.equal(
+            buildGoogleNewsQuery('iPhone shopping deals', { hoursBack: 24 }),
+            'iPhone shopping deals when:24h',
+        );
+    });
+});
+
 describe('buildGoogleNewsFeeds', () => {
     it('builds a localized search URL with a time window', () => {
         const { feeds } = buildGoogleNewsFeeds(['Reliance Industries'], { language: 'en', country: 'in', hoursBack: 24 });
         const url = new URL(feeds[0].url);
-        assert.equal(url.searchParams.get('q'), 'Reliance Industries when:24h');
+        assert.equal(
+            url.searchParams.get('q'),
+            `Reliance Industries ${GOOGLE_NEWS_SHOPPING_EXCLUSIONS} when:24h`,
+        );
         assert.equal(url.searchParams.get('hl'), 'en-IN');
         assert.equal(url.searchParams.get('gl'), 'IN');
         assert.equal(url.searchParams.get('ceid'), 'IN:en');
@@ -195,7 +264,7 @@ describe('buildGoogleNewsFeeds', () => {
     it('keeps a user-supplied when: operator and falls back on invalid locale', () => {
         const { feeds } = buildGoogleNewsFeeds(['nvidia when:7d'], { language: 'english', country: 'USA', hoursBack: 24 });
         const url = new URL(feeds[0].url);
-        assert.equal(url.searchParams.get('q'), 'nvidia when:7d');
+        assert.equal(url.searchParams.get('q'), `nvidia when:7d ${GOOGLE_NEWS_SHOPPING_EXCLUSIONS}`);
         assert.equal(url.searchParams.get('hl'), 'en-US');
     });
 

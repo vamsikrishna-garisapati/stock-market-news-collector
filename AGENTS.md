@@ -164,10 +164,12 @@ Lean Zapier / Slack payload:
 ## Common mistakes
 
 1. **Zero results with tickers or tight filters** — usually an explicit `includeKeywords` list or a short `hoursBack` window (curated presets no longer auto-filter by finance keywords). Omit `includeKeywords` (or set `[]`) and keep `useTickerFeeds` on.
-2. **Assuming run failed on empty dataset** — check `OUTPUT.runStatus`: `no_new_items` means `onlyNewArticles` already returned everything; `no_items` means filters matched nothing.
-3. **Expecting full text by default** — set `includeFullText: true`; paywalled publishers and Google News links return `fullTextStatus` `paywalled` or `unsupported`.
-4. **Expecting publisher URLs from Google News** — `articleLink` is resolved to the publisher when possible; unresolved rows keep the news.google.com redirect. `source` is always the publisher name.
-5. **Sharing `onlyNewArticles` history unintentionally** — history is separated by sources and filters; pass distinct `stateKey` values (stored encrypted) to separate runs with identical setups.
+2. **Yahoo ticker feeds HTTP 429** — ticker RSS is fetched sequentially with longer backoff on rate limits. If `OUTPUT.failures` still lists Yahoo URLs, retry later or set `useTickerFeeds: false` and use `searchQueries`.
+3. **Google News shopping / off-topic** — search queries get shopping exclusions by default; `tickers` / `companies` also filter Google News rows when set.
+4. **Assuming run failed on empty dataset** — check `OUTPUT.runStatus`: `no_new_items` means `onlyNewArticles` already returned everything; `no_items` means filters matched nothing.
+5. **Expecting full text by default** — set `includeFullText: true`; paywalled publishers and Google News links return `fullTextStatus` `paywalled` or `unsupported`.
+6. **Expecting publisher URLs from Google News** — `articleLink` is resolved to the publisher when possible; unresolved rows keep the news.google.com redirect. `source` is always the publisher name.
+7. **Sharing `onlyNewArticles` history unintentionally** — history is separated by sources and filters; pass distinct `stateKey` values (stored encrypted) to separate runs with identical setups.
 
 ## Apify API
 

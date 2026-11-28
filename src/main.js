@@ -16,6 +16,9 @@ import {
     containsExcludedKeyword,
     detectTickers,
     enrichmentFiltersActive,
+    feedRetryDelayMs,
+    isRateLimitError,
+    mapPool,
     matchesCompanyFilter,
     matchesTickerFilter,
     normalizeFilterEventTypes,
@@ -31,6 +34,9 @@ import {
 
 const DEFAULT_REQUEST_TIMEOUT_MS = 15_000;
 const DEFAULT_FEED_RETRIES = 1;
+const DEFAULT_FEED_CONCURRENCY = 4;
+/** Gap between Yahoo ticker RSS fetches — parallel hits often return HTTP 429. */
+const TICKER_FEED_GAP_MS = 1_000;
 const DATASET_ITEM_EVENT = 'apify-default-dataset-item';
 
 function parseDate(value) {
@@ -128,21 +134,63 @@ function maxChargeableItems() {
 
 async function parseFeedWithRetries(parser, feed, retries) {
     let lastError;
+    let attempt = 0;
+    // Initial try + configured retries; one bonus try if we see HTTP 429.
+    let maxAttempts = Math.max(0, Number(retries) || 0) + 1;
+    let bonusRateLimitRetry = false;
 
-    for (let attempt = 0; attempt <= retries; attempt += 1) {
+    while (attempt < maxAttempts) {
         try {
             return await parser.parseURL(feed.url);
         } catch (error) {
             lastError = error;
-            const delayMs = 500 * (attempt + 1);
-            log.warning(`Feed failed: ${feed.url}. Attempt ${attempt + 1}/${retries + 1}. ${error.message}`);
-            if (attempt < retries) {
-                await new Promise((resolve) => setTimeout(resolve, delayMs));
+            if (isRateLimitError(error) && !bonusRateLimitRetry) {
+                bonusRateLimitRetry = true;
+                maxAttempts += 1;
             }
+            log.warning(`Feed failed: ${feed.url}. Attempt ${attempt + 1}/${maxAttempts}. ${error.message}`);
+            attempt += 1;
+            if (attempt >= maxAttempts) break;
+            const delayMs = feedRetryDelayMs(attempt - 1, error);
+            await new Promise((resolve) => setTimeout(resolve, delayMs));
         }
     }
 
     throw lastError;
+}
+
+async function fetchAllFeeds(feeds, fetchOne) {
+    const results = new Array(feeds.length);
+    const otherIndexes = [];
+    const tickerIndexes = [];
+
+    for (let i = 0; i < feeds.length; i += 1) {
+        if (feeds[i].ticker) tickerIndexes.push(i);
+        else otherIndexes.push(i);
+    }
+
+    const otherResults = await mapPool(
+        otherIndexes,
+        DEFAULT_FEED_CONCURRENCY,
+        async (index) => fetchOne(feeds[index]),
+    );
+    for (let i = 0; i < otherIndexes.length; i += 1) {
+        results[otherIndexes[i]] = otherResults[i];
+    }
+
+    for (let i = 0; i < tickerIndexes.length; i += 1) {
+        const index = tickerIndexes[i];
+        try {
+            results[index] = { status: 'fulfilled', value: await fetchOne(feeds[index]) };
+        } catch (reason) {
+            results[index] = { status: 'rejected', reason };
+        }
+        if (i < tickerIndexes.length - 1) {
+            await new Promise((resolve) => setTimeout(resolve, TICKER_FEED_GAP_MS));
+        }
+    }
+
+    return results;
 }
 
 function normalizeItem(item, feed, parsedFeed, fetchedAt, enrich) {
@@ -226,8 +274,10 @@ function processFeedItems(parsedFeed, feed, fetchedAt, filters, options) {
         if (!containsAnyKeyword(searchable, includeKeywords)) continue;
         if (containsExcludedKeyword(searchable, excludeKeywords)) continue;
 
-        // Search results already match the user's query, so entity filters apply only to other feeds.
-        if (!feed.query) {
+        // Google News already matches the query text, but when the user also set
+        // tickers/companies, still enforce those so shopping and off-topic hits drop.
+        const enforceEntityFilters = !feed.query || tickers.length > 0 || companies.length > 0;
+        if (enforceEntityFilters) {
             if (!matchesTickerFilter(searchable, tickers, tickerMatchMode, normalized.tickers)) continue;
             if (!matchesCompanyFilter(searchable, companies)) continue;
         }
@@ -358,16 +408,14 @@ await Actor.main(async () => {
         const parser = createParser(requestTimeoutMs);
         const filters = { includeKeywords, excludeKeywords, tickers, companies, tickerMatchMode, cutoffMs };
 
-        await Actor.setStatusMessage(`Fetching ${feeds.length} feed(s) in parallel...`);
+        await Actor.setStatusMessage(`Fetching ${feeds.length} feed(s)...`);
 
-        const feedResults = await Promise.allSettled(
-            feeds.map(async (feed) => {
-                const parsedFeed = await parseFeedWithRetries(parser, feed, feedRetries);
-                const items = processFeedItems(parsedFeed, feed, fetchedAt, filters, { enrich, maxItemsPerFeed });
-                log.info(`Fetched ${parsedFeed.items?.length || 0} item(s), kept ${items.length} from ${feedLabel(feed) || feed.url}`);
-                return { itemCount: parsedFeed.items?.length || 0, items };
-            }),
-        );
+        const feedResults = await fetchAllFeeds(feeds, async (feed) => {
+            const parsedFeed = await parseFeedWithRetries(parser, feed, feedRetries);
+            const items = processFeedItems(parsedFeed, feed, fetchedAt, filters, { enrich, maxItemsPerFeed });
+            log.info(`Fetched ${parsedFeed.items?.length || 0} item(s), kept ${items.length} from ${feedLabel(feed) || feed.url}`);
+            return { itemCount: parsedFeed.items?.length || 0, items };
+        });
 
         const results = [];
         const failures = [];

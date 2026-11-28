@@ -63,7 +63,7 @@
       "default": [],
       "example": ["AAPL", "NVDA"],
       "sectionCaption": "💹 Filters",
-      "sectionDescription": "Narrow results by ticker, company name, keywords, or date. Search query results skip ticker and company filters."
+      "sectionDescription": "Narrow results by ticker, company name, keywords, or date. When tickers or companies are set, they also filter Google News search hits."
     },
     "useTickerFeeds": {
       "title": "Fetch per-ticker feeds",

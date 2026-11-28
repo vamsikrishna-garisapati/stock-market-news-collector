@@ -26,6 +26,9 @@ export const MAX_TICKER_FEEDS = 20;
 export const MAX_SEARCH_QUERIES = 10;
 export const MAX_HEADLINE_LENGTH = 500;
 
+/** Appended to Google News queries to cut shopping/deal clutter (finance headlines stay). */
+export const GOOGLE_NEWS_SHOPPING_EXCLUSIONS = '-shopping -"gift guide" -coupon -"percent off" -"flash sale" -"black friday" -"cyber monday"';
+
 const TICKER_PATTERN = /^[A-Z0-9][A-Z0-9.\-^=]{0,14}$/;
 const LANGUAGE_PATTERN = /^[a-z]{2}$/;
 const COUNTRY_PATTERN = /^[A-Z]{2}$/;
@@ -341,6 +344,52 @@ export function matchesTickerFilter(searchable, tickers, matchMode, knownTickers
     return matchMode === 'all' ? matches.every(Boolean) : matches.some(Boolean);
 }
 
+/** True when a feed fetch failed due to HTTP 429 / rate limiting. */
+export function isRateLimitError(error) {
+    const status = error?.statusCode ?? error?.status ?? error?.response?.statusCode;
+    if (status === 429) return true;
+    const msg = String(error?.message || error || '');
+    return /\b429\b|too many requests|rate[\s_-]?limit/i.test(msg);
+}
+
+/**
+ * Delay before the next feed retry. Rate limits get longer exponential backoff
+ * so Yahoo ticker feeds can recover; other errors stay short.
+ * @param {number} attempt Zero-based index of the failed attempt (0 = first failure).
+ */
+export function feedRetryDelayMs(attempt, error) {
+    const n = Math.max(0, Number(attempt) || 0);
+    if (isRateLimitError(error)) {
+        return Math.min(15_000, 2_000 * (2 ** n));
+    }
+    return 500 * (n + 1);
+}
+
+/** Run async work over items with a fixed concurrency pool; results keep input order. */
+export async function mapPool(items, concurrency, mapper) {
+    const list = Array.isArray(items) ? items : [];
+    if (!list.length) return [];
+
+    const results = new Array(list.length);
+    let next = 0;
+
+    async function worker() {
+        while (next < list.length) {
+            const index = next;
+            next += 1;
+            try {
+                results[index] = { status: 'fulfilled', value: await mapper(list[index], index) };
+            } catch (reason) {
+                results[index] = { status: 'rejected', reason };
+            }
+        }
+    }
+
+    const workers = Math.min(Math.max(1, Number(concurrency) || 1), list.length);
+    await Promise.all(Array.from({ length: workers }, () => worker()));
+    return results;
+}
+
 export function buildTickerFeeds(tickers) {
     const feeds = [];
     const skipped = [];
@@ -371,6 +420,32 @@ export function buildTickerFeeds(tickers) {
     return { feeds, skipped };
 }
 
+/** True when the query already opts into or out of shopping-style terms. */
+export function shouldAppendShoppingExclusions(query) {
+    const q = String(query ?? '');
+    if (!q.trim()) return false;
+    // Already has our exclusions (or the user added -shopping).
+    if (/-shopping\b/i.test(q)) return false;
+    // User is intentionally searching retail/deals — don't rewrite their query.
+    if (/\b(shopping|gift guide|coupon|flash sale|black friday|cyber monday)\b/i.test(q)) {
+        return false;
+    }
+    return true;
+}
+
+export function buildGoogleNewsQuery(query, { hoursBack = 0 } = {}) {
+    let q = String(query ?? '').trim();
+    if (!q) return q;
+
+    if (shouldAppendShoppingExclusions(q)) {
+        q = `${q} ${GOOGLE_NEWS_SHOPPING_EXCLUSIONS}`;
+    }
+    if (hoursBack > 0 && !/\bwhen:/i.test(query)) {
+        q = `${q} when:${hoursBack}h`;
+    }
+    return q;
+}
+
 export function buildGoogleNewsFeeds(queries, { language = 'en', country = 'US', hoursBack = 0 } = {}) {
     const feeds = [];
     const skipped = [];
@@ -388,8 +463,8 @@ export function buildGoogleNewsFeeds(queries, { language = 'en', country = 'US',
             continue;
         }
 
-        const withWindow = hoursBack > 0 && !/\bwhen:/i.test(query) ? `${query} when:${hoursBack}h` : query;
-        const params = new URLSearchParams({ q: withWindow, hl: `${lang}-${gl}`, gl, ceid: `${gl}:${lang}` });
+        const withExtras = buildGoogleNewsQuery(query, { hoursBack });
+        const params = new URLSearchParams({ q: withExtras, hl: `${lang}-${gl}`, gl, ceid: `${gl}:${lang}` });
         feeds.push({
             name: 'Google News',
             url: `https://news.google.com/rss/search?${params}`,
